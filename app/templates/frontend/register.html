@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "_forms_h.html" as m %}
+{% block content %}
+<div class="row">
+	<h1> Register </h1>
+	<hr />
+	<form class="form-horizontal" action="" method="post" name="login">
+		{{form.hidden_tag()}}
+		{{ m.input(form.username, placeholder="Username") }}
+		{{ m.input(form.password, placeholder="Password") }}
+		{{ m.input(form.repeat, placeholder="Repeat your passsword") }}
+		<div class="col-lg-offset-3 col-lg-2">
+			{{ m.submit("Register", class="btn-lg btn-primary btn-block") }}
+		</div>
+	</form>
+</div>
+{% endblock %}

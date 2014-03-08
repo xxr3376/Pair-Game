@@ -1,0 +1,9 @@
+node_modules
+*.pyc
+*.db
+*.backup
+/data
+.tmp
+/env
+/manage.py
+/config.py
