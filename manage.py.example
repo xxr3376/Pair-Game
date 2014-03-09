@@ -3,17 +3,11 @@ from flask.ext.script import Server, Shell, Manager, prompt_bool
 from app import create_app
 from app.foundation import db
 from app.models.User import User, ROLE
-from app.models.Image import Image
-from app.models.Task import Task
-from app.models.Record import Record
-from app.models.Tag import *
-import os
-import sys
 app = create_app()
 app.debug = True
 manager = Manager(app)
 
-manager.add_command("runserver", Server('0.0.0.0',port=12531))
+manager.add_command("runserver", Server('0.0.0.0',port=8000))
 
 def _make_context():
     return dict(db=db)
