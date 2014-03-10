@@ -2,17 +2,6 @@ module.exports = function (grunt) {
   'use strict';
 
   grunt.initConfig({
-    connect: {
-      options: {
-        keepalive: true,
-       },
-      data: {
-        options: {
-          port: 9998,
-          base: 'data'
-        }
-      }
-    },
     less: {
       dist: {
         files: [{
@@ -43,50 +32,25 @@ module.exports = function (grunt) {
         files: ['app/static/less/**/*'],
         tasks: ['css'],
       },
+      js: {
+        files: ['app/static/coffee/**/*'],
+        tasks: [ 'coffee'],
+      },
     },
     requirejs: {
-      point: {
-        options: {
-          mainConfigFile: "rjs_config.js",
-          out: "app/static/cjs/task-4point.js",
-          name: "task-4point"
+    },
+    coffee: {
+      compile: {
+        files: [
+          {
+          expand: true,
+          cwd: 'app/static/coffee/',
+          src: ['**/*.coffee'],
+          dest: 'app/static/js',
+          ext: '.js',
         }
-      },
-      attr: {
-        options: {
-          mainConfigFile: "rjs_config.js",
-          out: "app/static/cjs/task-attr.js",
-          name: "task-attr"
-        }
-      },
-      orientation: {
-        options: {
-          mainConfigFile: "rjs_config.js",
-          out: "app/static/cjs/task-orientation.js",
-          name: "task-orientation"
-        }
-      },
-      pose3d: {
-        options: {
-          mainConfigFile: "rjs_config.js",
-          out: "app/static/cjs/task-pose3d.js",
-          name: "task-pose3d"
-        }
-      },
-      age_range: {
-        options: {
-          mainConfigFile: "rjs_config.js",
-          out: "app/static/cjs/task-age-range.js",
-          name: "task-age-range"
-        }
-      },
-      landmark: {
-        options: {
-          mainConfigFile: "rjs_config.js",
-          out: "app/static/cjs/task-landmark.js",
-          name: "task-landmark"
-        }
-      },
+        ]
+      }
     }
   });
 
@@ -95,6 +59,7 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-autoprefixer');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-requirejs');
+  grunt.loadNpmTasks('grunt-contrib-coffee');
 
   grunt.registerTask('css', [
     'less',
@@ -102,7 +67,11 @@ module.exports = function (grunt) {
   ]);
   grunt.registerTask('server', [
     'css',
-    'connect',
+  ]);
+  grunt.registerTask('dev', [
+    'css',
+    'coffee',
+    'watch',
   ]);
   grunt.registerTask('deploy', [
     'requirejs',

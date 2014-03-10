@@ -48,7 +48,3 @@
         {% block content %}{% endblock %}
     </div>
     {% endblock %}
-    {% block bootstrap_js_bottom %}
-    {{ super() }}
-    <script src="{{url_for('static', filename='js/nav.js')}}"></script>
-    {% endblock %}

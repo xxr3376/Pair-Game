@@ -10,7 +10,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
     {%- endblock meta %}
-    <script src="{{url_for('static', filename='js/jquery-2.0.3.min.js')}}"></script>
+    <script src="{{url_for('static', filename='js/lib/jquery-2.0.3.min.js')}}"></script>
     {%- block style %}
     <link href="{{url_for('static', filename='css/bootstrap.min.css')}}" rel="stylesheet">
 	<!--
@@ -37,7 +37,7 @@
     {%- block body_content %}
     {%- endblock body_content %}
     {%- block bootstrap_js_bottom %}
-    <script src="{{url_for('static', filename='js/bootstrap.min.js')}}"></script>
+    <script src="{{url_for('static', filename='js/lib/bootstrap.min.js')}}"></script>
     {%- endblock bootstrap_js_bottom %}
   {%- endblock body %}
   </body>

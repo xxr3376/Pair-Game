@@ -50,6 +50,7 @@ def configure_handlers(app):
         return render_template('403.html'), 403
 def configure_blueprint(app):
     app.register_blueprint(views.frontend)
+    app.register_blueprint(views.team, url_prefix='/%s' % views.team.name)
 def configure_template_filter(app):
     from datetime import date
     @app.template_filter('dateint')
