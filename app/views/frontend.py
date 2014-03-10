@@ -4,14 +4,33 @@ from app.forms import LoginForm, PasswdForm, RegisterForm
 from app.models.User import User, ROLE
 from flask.ext.login import login_user, logout_user, login_required
 from app.foundation import db
+from app.foundation import redis
 
 frontend = Blueprint('frontend', __name__, template_folder='templates')
 
+waiting = 'waiting_users'
+games = 'playing_users'
+
 @frontend.route('/')
-@frontend.route('/index')
+@frontend.route('/index',methods = ['GET', 'POST'])
 @login_required
 def index():
-    return 'aaaaaaaaaaaaaa'
+    if request.method == 'POST':
+        flash(g.user)
+        token = redis.db.lpop(waiting)
+        if token:
+            redis.db.rpush(games,token)
+            flash(token)
+        else:
+            token = g.user.username
+            redis.db.rpush(waiting,token)
+            flash('waiting')
+            item = redis.db.blpop(games,30)
+            if not item:
+                item = '%s bad ' % (redis.db.lpop(waiting))
+            flash('%s = %s' % (token,item))
+        flash('game start at %s' % (token))
+    return render_template("frontend/index.html")
 @frontend.route('/login', methods = ['GET', 'POST'])
 def login():
     if g.user is not None and g.user.is_authenticated():
