@@ -14,9 +14,10 @@ define(['q', 'jquery'],
           if json.status is "SUCCESS"
             text.text "Enqueue successful, token: #{json.token}"
           else
-            text.text "Enqueue failed"
+            text.text "Enqueue failed, #{json.reason}"
         (err) ->
           text.text "Network Error"
       ).fin ->
         loading.fadeOut 500
+        btn.removeAttr'disabled'
 )
