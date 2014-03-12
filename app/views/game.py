@@ -80,7 +80,7 @@ waiting_s = 'waiting:%s'
 ack_s = 'ack:%s'
 prepare_timeout = 3
 round_timeout = 10
-tokent = 'test_token'
+tokent = 't_token'
 
 def prepare_data(token):
     rounds = [1,2,3]
@@ -140,9 +140,14 @@ def hand_in():
     handin = [12,3]
     if request.method == 'GET':
         handin = [13,5]
-    print handin
+    else:
+        json = request.json
+        handin = [json['time'],json['choice']]
+    print request.method,handin
     game_lock()
+    print redis.db.llen(waiting_key)
     mate_handin = redis.db.lpop(waiting_key)
+    print mate_handin,redis.db.llen(waiting_key)
     if mate_handin:
         mate_handin = eval(mate_handin)
         time = handin[0]
@@ -164,7 +169,7 @@ def hand_in():
             _,ack = msg
             return jsonify(handin_result(eval(ack)))
         else:
-            redis.db.lpop(token_key)
+            redis.db.lpop(waiting_key)
             return jsonify(state_result(TIMEOUT))
 
 def original():
