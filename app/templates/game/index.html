@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="/static/vendor/requirejs/require.js"> </script>
+<script src="/static/js/main.js"> </script>
+<script> require(['team']); </script>
+
+<style>
+#loading {
+  background: rgba(0, 0, 0, 0.6);
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  position: absolute;
+  display: none;
+}
+#loading-inner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  top: 40%;
+  color: white;
+  font-weight: bold;
+  font-size: 40px;
+}
+</style>
+<div id="loading">
+  <div id="loading-inner">
+    Loading... Please wait.
+  </div>
+</div>
+
+<div class="page-header">
+  <h1> Let's get a Patener </h1>
+</div>
+
+<button id="start" type="button" class="btn btn-primary"> game start </button>
+
+<div id="text"> </div>
+
+{% endblock %}
