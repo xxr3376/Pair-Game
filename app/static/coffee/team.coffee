@@ -19,5 +19,5 @@ define(['q', 'jquery'],
           text.text "Network Error"
       ).fin ->
         loading.fadeOut 500
-        btn.removeAttr'disabled'
+        btn.removeAttr 'disabled'
 )

@@ -51,6 +51,7 @@ def configure_handlers(app):
 def configure_blueprint(app):
     app.register_blueprint(views.frontend)
     app.register_blueprint(views.team, url_prefix='/%s' % views.team.name)
+    app.register_blueprint(views.game, url_prefix='/%s' % views.game.name)
 def configure_template_filter(app):
     from datetime import date
     @app.template_filter('dateint')
