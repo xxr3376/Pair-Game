@@ -7,6 +7,8 @@ import time
 import uuid
 import random
 from app.foundation import redis
+from .lock import lock
+from .lock import release_lock
 
 team = Blueprint('team', __name__)
 
@@ -19,21 +21,6 @@ def before_request():
 @team.route('/')
 def index():
     return render_template('team/index.html')
-
-def team_lock():
-    while True:
-        lock = redis.db.hget('lock', 'team')
-        if lock == None or int(lock) == 0:
-            get_lock = redis.db.hincrby('lock', 'team', 1)
-            if get_lock == 1:
-                break
-            else:
-                redis.db.hincrby('lock', 'team', -1)
-        time.sleep(random.random() / 100)
-    return
-def release_lock():
-    redis.db.hset('lock', 'team', 0)
-    return
 
 def generate_enqueue_result(token):
     if token:
@@ -53,16 +40,16 @@ def register_token(token, user_id):
 
 waiting_key = "team:waiting"
 user_key = "team:userslot:%s"
-
+lock_key = 'team_lock'
 
 @team.route('/enqueue')
 def enqueue():
-    team_lock()
+    lock(lock_key)
     mate = redis.db.spop(waiting_key)
     result = {}
     if mate:
         #has mate
-        release_lock()
+        release_lock(lock_key)
         mate_key = user_key % mate
         token = uuid.uuid1()
         redis.db.rpush(mate_key, token)
@@ -73,7 +60,7 @@ def enqueue():
         self_key = user_key % g.user.id
         redis.db.delete(self_key)
         redis.db.sadd(waiting_key, g.user.id)
-        release_lock()
+        release_lock(lock_key)
         message = redis.db.blpop(self_key, timeout=20)
         if message:
             _, token = message

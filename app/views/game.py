@@ -7,6 +7,8 @@ import time
 import uuid
 import random
 from app.foundation import redis
+from .lock import lock
+from .lock import release_lock
 
 game = Blueprint('game', __name__)
 
@@ -20,20 +22,6 @@ def before_request():
 def index():
     return render_template('game/index.html')
 
-def game_lock():
-    while True:
-        lock = redis.db.hget('lock', 'game')
-        if lock == None or int(lock) == 0:
-            get_lock = redis.db.hincrby('lock', 'game', 1)
-            if get_lock == 1:
-                break
-            else:
-                redis.db.hincrby('lock', 'game', -1)
-        time.sleep(random.random() / 100)
-    return
-def release_lock():
-    redis.db.hset('lock', 'game', 0)
-    return
 NO_ACK = -1
 TIMEOUT = -2
 OK = 1
@@ -90,19 +78,19 @@ def prepare_data(token):
 
 @game.route('/prepare')
 def prepare():
-    game_lock()
     token = tokent
+    lock(token)
     waiting_key = waiting_s % token
     ack_key = ack_s % token
     ack = redis.db.lpop(waiting_key)
     if ack:
         redis.db.rpush(ack_key,token)
-        release_lock()
+        release_lock(token)
         prepare_data(token)
         return jsonify(state_result(OK))
     else:
         redis.db.rpush(waiting_key,token)
-        release_lock()
+        release_lock(token)
         ack = redis.db.blpop(ack_key,prepare_timeout)
         if ack:
             return jsonify(state_result(OK))
@@ -118,17 +106,17 @@ def next_round():
     length = redis.db.llen(token_key)
     if 0 == length:
         return jsonify(state_result(NO_MORE))
-    game_lock()
+    lock(token)
     ack_key = ack_s % token
     ack = redis.db.lpop(ack_key)
     if ack:
         rid = redis.db.lpop(token_key)
-        release_lock()
+        release_lock(token)
         return jsonify(round_result(rid))
     else:
         rid = redis.db.lindex(token_key,0)
         redis.db.rpush(ack_key,token)
-        release_lock()
+        release_lock(token)
         return jsonify(round_result(rid))
 
 @game.route('/hand_in',methods = ['GET','POST'])
@@ -144,7 +132,7 @@ def hand_in():
         json = request.json
         handin = [json['time'],json['choice']]
     print request.method,handin
-    game_lock()
+    lock(token)
     print redis.db.llen(waiting_key)
     mate_handin = redis.db.lpop(waiting_key)
     print mate_handin,redis.db.llen(waiting_key)
@@ -159,11 +147,11 @@ def hand_in():
         else:
             ack.append('DIFF')
         redis.db.rpush(ack_key,ack)
-        release_lock()
+        release_lock(token)
         return jsonify(handin_result(ack))
     else:
         redis.db.rpush(waiting_key,handin)
-        release_lock()
+        release_lock(token)
         msg = redis.db.blpop(ack_key,round_timeout)
         if msg:
             _,ack = msg
