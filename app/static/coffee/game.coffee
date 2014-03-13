@@ -18,7 +18,7 @@ define(['q', 'jquery'],
         success: (e) ->
           console.log e
           if e.status is "OK"
-            text.text "OK"
+            text.text "#{e.round}"
           else
             text.text "#{e.status}:#{e.msg}"
           loading.fadeOut 500

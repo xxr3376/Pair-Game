@@ -22,43 +22,28 @@ def before_request():
 def index():
     return render_template('game/index.html')
 
-NO_ACK = -1
-TIMEOUT = -2
-OK = 1
-NO_MORE = -3
-MATE_OFFLINE = {
-     "status":"ERROR",
-     "msg":"MATE_OFFLINE",
-     }
-results = {
-        NO_ACK:MATE_OFFLINE,
-        TIMEOUT:MATE_OFFLINE,
-        OK:{"status":"OK",},
-        NO_MORE:{"status":"ERROR","msg":"NO_MORE_ROUND"}
+RETRY = -1
+EXIT = -2
+DONE = 0
+states = {
+        EXIT:"EXIT",
+        DONE:"DONE",
+        RETRY:"RETRY"
         }
 
-def state_result(state):
-    print state
-    if state:
-        result = results[state]
+def result(next):
+    if next:
+        result = {}
+        if next[0]>0:
+            result["status"] = "SUCCESS"
+            result["round"] = next
+        else:
+            result["status"] = states[next[0]]
     else:
         result = {
-            "status": "ERROR",
-            "msg": "unknown error",
+            "status": "FAIL",
         }
     return result
-
-def round_result(rid):
-    result = {
-            'status' : "ROUND",
-            'rid': str(rid),
-            }
-    return result
-
-def handin_result(msg):
-    print 'MSG %s' % msg
-    time,state = msg
-    return {'status':state,'rest_time':str(time)}
 
 def register_token(token, user_id):
     pass
@@ -68,60 +53,58 @@ waiting_s = 'waiting:%s'
 ack_s = 'ack:%s'
 prepare_timeout = 3
 round_timeout = 10
-tokent = 't_token'
+tokent = 'tt_token'
 
+def next_round(token):
+    # id = next round play
+    token_key = token_s % token
+    length = redis.db.llen(token_key)
+    rtn = [length]
+    if 0 != length:
+        rounds = eval(redis.db.lpop(token_key))
+        rtn.append(rounds)
+    return rtn
+
+import re
+pat = re.compile('\[(\d+),\s*(.+)\]')
+def parse_round(rtn):
+    return eval(rtn)
 def prepare_data(token):
-    rounds = [1,2,3]
+    rounds = [[[11,'hello'],[12,'hello'],[13,'hello'],],
+            [[103,'hello'],[102,'hello'],[101,'hello'],],
+            [[120,'hello'],[110,'hello'],[1,'hello'],]]
     token_key = token_s % token
     for round in rounds:
         redis.db.lpush(token_key,round)
+    return next_round(token)
 
 @game.route('/prepare')
 def prepare():
     token = tokent
+    release_lock(token)
     lock(token)
     waiting_key = waiting_s % token
     ack_key = ack_s % token
     ack = redis.db.lpop(waiting_key)
     if ack:
-        redis.db.rpush(ack_key,token)
+        rtn = prepare_data(token)
+        redis.db.rpush(ack_key,rtn)
         release_lock(token)
-        prepare_data(token)
-        return jsonify(state_result(OK))
+        return jsonify(result(rtn))
     else:
         redis.db.rpush(waiting_key,token)
         release_lock(token)
         ack = redis.db.blpop(ack_key,prepare_timeout)
         if ack:
-            return jsonify(state_result(OK))
+            _,rtn = ack
+            return jsonify(result(parse_round(rtn)))
         else:
             redis.db.lpop(waiting_key)
-            return jsonify(state_result(NO_ACK))
+            return jsonify(result(EXIT))
 
-@game.route('/next_round')
-def next_round():
-    # id = next round play
-    token = tokent
-    token_key = token_s % token
-    length = redis.db.llen(token_key)
-    if 0 == length:
-        return jsonify(state_result(NO_MORE))
-    lock(token)
-    ack_key = ack_s % token
-    ack = redis.db.lpop(ack_key)
-    if ack:
-        rid = redis.db.lpop(token_key)
-        release_lock(token)
-        return jsonify(round_result(rid))
-    else:
-        rid = redis.db.lindex(token_key,0)
-        redis.db.rpush(ack_key,token)
-        release_lock(token)
-        return jsonify(round_result(rid))
 
 @game.route('/hand_in',methods = ['GET','POST'])
 def hand_in():
-    result = None
     token = tokent
     waiting_key = waiting_s % token
     ack_key = ack_s % token
@@ -141,24 +124,25 @@ def hand_in():
         time = handin[0]
         if time<mate_handin[0]:
             time = mate_handin[0]
-        ack = [time]
+        ack = None
         if handin[1] == mate_handin[1]:
-            ack.append('OK')
+            ack = next_round(token)
         else:
-            ack.append('DIFF')
+            ack = [RETRY]
+        print "ACK0 %s " % ack
         redis.db.rpush(ack_key,ack)
         release_lock(token)
-        return jsonify(handin_result(ack))
+        return jsonify(result(ack))
     else:
         redis.db.rpush(waiting_key,handin)
         release_lock(token)
         msg = redis.db.blpop(ack_key,round_timeout)
         if msg:
             _,ack = msg
-            return jsonify(handin_result(eval(ack)))
+            return jsonify(result(parse_round(ack)))
         else:
             redis.db.lpop(waiting_key)
-            return jsonify(state_result(TIMEOUT))
+            return jsonify(result([EXIT]))
 
 def original():
     game_lock()
