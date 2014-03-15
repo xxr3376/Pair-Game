@@ -36,7 +36,8 @@ def result(next):
         result = {}
         if next[0]>0:
             result["status"] = "SUCCESS"
-            result["round"] = next
+            result["round"] = next[1]
+            result["rest"] = next[0]
         else:
             result["status"] = states[next[0]]
     else:
@@ -61,7 +62,10 @@ def next_round(token):
     length = redis.db.llen(token_key)
     rtn = [length]
     if 0 != length:
-        rounds = eval(redis.db.lpop(token_key))
+        origin = eval(redis.db.lpop(token_key))
+        rounds = []
+        for item in origin:
+            rounds.append({'path':item[1],'id':item[0]})
         rtn.append(rounds)
     return rtn
 
@@ -78,9 +82,10 @@ def prepare_data(token):
         redis.db.lpush(token_key,round)
     return next_round(token)
 
-@game.route('/prepare')
-def prepare():
-    token = tokent
+#@game.route('/prepare')
+@game.route('/fake_prepare/<token>')
+def prepare(token):
+    #token = tokent
     release_lock(token)
     lock(token)
     waiting_key = waiting_s % token
@@ -102,7 +107,7 @@ def prepare():
             redis.db.lpop(waiting_key)
             return jsonify(result([EXIT]))
 
-@game.route('/fake_prepare/<token>')
+@game.route('/ffake_prepare/<token>')
 def fake_prepare(token):
     time.sleep(0.5)
     normal = {
