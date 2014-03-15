@@ -129,7 +129,7 @@ def fake_prepare(token):
     invaild = {
         "status": "INVAILD"
     }
-    return jsonify(random.choice([normal, partener_exit, invaild]))
+    return jsonify(normal)
 
 @game.route('/hand_in',methods = ['GET','POST'])
 def hand_in():
