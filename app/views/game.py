@@ -100,7 +100,7 @@ def prepare():
             return jsonify(result(parse_round(rtn)))
         else:
             redis.db.lpop(waiting_key)
-            return jsonify(result(EXIT))
+            return jsonify(result([EXIT]))
 
 @game.route('/fake_prepare/<token>')
 def fake_prepare(token):
