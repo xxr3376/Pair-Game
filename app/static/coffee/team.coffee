@@ -13,11 +13,12 @@ define(['q', 'jquery'],
         (json) ->
           if json.status is "SUCCESS"
             text.text "Enqueue successful, token: #{json.token}"
+            window.location.href = "/game?token=#{json.token}"
           else
-            text.text "Enqueue failed, #{json.reason}"
+            text.text "Enqueue failed, #{json.reason}, pls retry"
         (err) ->
-          text.text "Network Error"
+          text.text "Network Error, pls refresh page"
       ).fin ->
+        btn.prop 'disabled', false
         loading.fadeOut 500
-        btn.removeAttr 'disabled'
 )
