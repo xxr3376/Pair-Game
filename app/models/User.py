@@ -2,6 +2,7 @@
 from app.foundation import db
 import random
 import hashlib
+import datetime
 
 ROLE = {
     "ADMIN" : 0,
@@ -48,6 +49,11 @@ class User(db.Model):
         passwd = '%s%s%s' % (salt, raw, db.app.config['PASSWORD_SECRET'])
         verify = hashlib.sha1(passwd).hexdigest()
         return verify == hsh
+    @staticmethod
+    def online_users():
+        min_ago = datetime.datetime.utcnow()-datetime.timedelta(minutes=1)
+        query = User.query.filter(User.last_seen>min_ago)
+        return query.count()
     @staticmethod
     def create_password(raw):
         salt = User.create_token(8)
