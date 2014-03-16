@@ -83,7 +83,7 @@ def prepare_data(token):
     return next_round(token)
 
 #@game.route('/prepare')
-@game.route('/fake_prepare/<token>')
+@game.route('/ffake_prepare/<token>')
 def prepare(token):
     #token = tokent
     release_lock(token)
@@ -107,11 +107,12 @@ def prepare(token):
             redis.db.lpop(waiting_key)
             return jsonify(result([EXIT]))
 
-@game.route('/ffake_prepare/<token>')
+@game.route('/fake_prepare/<token>')
 def fake_prepare(token):
     time.sleep(0.5)
     normal = {
         "status": "SUCCESS",
+        "round_length": 25, #TODO
         "round": [
             {
                 "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=e2e827248418367aad8978dd1a4b8ad4/09fa513d269759ee6fd48ac6b0fb43166d22df33.jpg",
@@ -136,6 +137,35 @@ def fake_prepare(token):
     }
     return jsonify(normal)
 
+@game.route('/fake_submit/<token>', methods=['POST'])
+def fake_submit(token):
+    same = {
+        "status": "SUCCESS",
+        "score": 36,
+        "round": [
+            {
+                "path": "http://a.hiphotos.baidu.com/image/w%3D2048/sign=e5caaaa8e61190ef01fb95dffa239f16/bd3eb13533fa828bc6e1e7a6fc1f4134960a5ab0.jpg",
+                "id": "219329312",
+            },
+            {
+                "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=e2e827248418367aad8978dd1a4b8ad4/09fa513d269759ee6fd48ac6b0fb43166d22df33.jpg",
+                "id": "219329311",
+            },
+            {
+                "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=ce91af251bd8bc3ec60801cab6b3a61e/8694a4c27d1ed21bace434faaf6eddc451da3ffb.jpg",
+                "id": "219329313",
+            },
+        ]
+    }
+    diff = {
+        "status": "RETRY",
+        "score": 35,
+    }
+    timeout = {
+        "status": "EXIT",
+        "score": 21,
+    }
+    return jsonify(same)
 @game.route('/hand_in',methods = ['GET','POST'])
 def hand_in():
     token = tokent
