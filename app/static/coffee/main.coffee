@@ -13,5 +13,9 @@ require.config({
     template: 'template'
 
     jquery: 'lib/jquery-2.0.3.min'
+    bootstrap: 'lib/bootstrap.min'
     mousetrap: 'lib/mousetrap.min'
+  shim:
+    bootstrap:
+      deps: ['jquery']
 })

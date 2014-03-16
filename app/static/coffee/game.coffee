@@ -6,7 +6,7 @@ SETTINGS =
   punishment_time: 20
   game_length: 25
 
-define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'],
+define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown', 'bootstrap'],
   (Q, $, getURLParameters, Timer, Countdown) ->
     ($ '.choice').attr 'src', empty_url
     token = getURLParameters(location.href)['token']
@@ -23,6 +23,9 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     time_dom = $ '#time'
     length_dom = $ '#game-length'
 
+    ($ '#modal-exit, #modal-win').on 'hide', ->
+      location.href = '/team'
+
 
     # show loading at first
     loading.fadeIn 100
@@ -33,6 +36,11 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     game_length = SETTINGS.game_length
 
     # util
+    toggle_input = (dom, state) ->
+      if state
+        dom.attr 'disabled', false
+      else
+        dom.prop 'disabled', 'disabled'
     clear_action = ->
       for i in [0...3]
         choice[i].removeClass 'active'
@@ -58,8 +66,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
           when 'SUCCESS'
             init_round data.round
           when 'EXIT'
-            alert 'Your partener exit game.'
-            location.href = '/team'
+            ($ '#modal-exit').modal('show')
           when 'INVAILD'
             alert 'you are not belong here'
             location.href = '/team'
@@ -75,6 +82,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       @.classList.toggle 'active'
 
     submit = (data) ->
+      toggle_input submit_dom, false
       loading.fadeIn 300
       promise = Q $.ajax(
         url: "/game/fake_submit/#{token}"
@@ -91,10 +99,16 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
               game_length -= 1
               init_round data.round
               score_dom.text data.score
+              toggle_input submit_dom, true
             when 'RETRY'
               # TODO
-              console.log 'pls retry'
               clear_action()
+              toggle_input submit_dom, true
+            when 'DONE'
+              ($ '#modal-win').modal('show')
+            when 'EXIT'
+              ($ '#modal-exit').modal('show')
+          toggle_input submit_dom, true
           loading.fadeOut 300
           return
       )
