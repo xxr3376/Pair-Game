@@ -46,7 +46,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       time_dom.addClass 'take-easy'
       clear_action()
       countdown.start()
-      loading.fadeOut 300
 
     countdown.on Countdown.Events.TICK, (timepass) ->
       time_dom.text (SETTINGS.timeout - timepass)
@@ -64,6 +63,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
           when 'INVAILD'
             alert 'you are not belong here'
             location.href = '/team'
+        loading.fadeOut 300
     )
     ($ '.choice').on 'click', ->
       count = 0
@@ -95,6 +95,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
               # TODO
               console.log 'pls retry'
               clear_action()
+          loading.fadeOut 300
           return
       )
 
