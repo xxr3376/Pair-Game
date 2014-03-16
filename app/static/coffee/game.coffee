@@ -80,7 +80,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         url: "/game/fake_submit/#{token}"
         type: 'POST'
         dataType: 'json'
-        contentType: 'json'
+        contentType: 'application/json'
         data: JSON.stringify data
       )
       promise.then(
