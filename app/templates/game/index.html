@@ -35,6 +35,13 @@
 .choice.active{
   border: 4px solid #0074D9;
 }
+#time.take-easy {
+  color: #428bca;
+}
+#time {
+  font-weight: bold;
+}
+
 
 </style>
 <div id="loading">
@@ -45,27 +52,41 @@
 
 <div class="page-header">
   <h1> Game </h1>
-  <span class="pull-right">
-    <b> Score </b> : 123
-  </span>
 </div>
+
+<div class="row">
+  <div class="col-xs-12 col-sm-12 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+    <span>
+      <b> Score </b>
+      : <span id="score"> 0 </span>
+    </span>
+
+    <span>
+      <b> Time Left </b>
+      : <span id="time"> 0 </span>
+    </span>
+    <span>
+      <b> Question Left </b>
+      : <span id="game-length"> 0 </span>
+    </span>
+  </div>
+</div>
+<hr />
+
 <div class="row">
   <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
     Please pick two of the most similar pictures out from 3 pictures.
   </div>
 <div class="row">
   <div class="col-xs-4 col-sm-4 col-md-3 col-md-offset-1 col-lg-3 col-lg-offset-1">
-    <img class="choice" id="choice1">
+    <img class="choice" id="choice1" data-num="0">
   </div>
   <div class="col-xs-4 col-sm-4 col-md-3 col-md-offset-1 col-lg-3 col-lg-offset-1">
-    <img class="choice" id="choice2">
+    <img class="choice" id="choice2" data-num="1">
   </div>
   <div class="col-xs-4 col-sm-4 col-md-3 col-md-offset-1 col-lg-3 col-lg-offset-1">
-    <img class="choice" id="choice3">
+    <img class="choice" id="choice3" data-num="2">
   </div>
-</div>
-<div class="alert alert-danger">
-  xxx
 </div>
 <div class="row">
   <div class="col-xs-12 col-sm-8 col-md-8 col-lg-8

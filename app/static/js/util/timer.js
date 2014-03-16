@@ -15,7 +15,7 @@
       };
 
       Timer.prototype.second = function() {
-        return this.millisecond() / 1000;
+        return Math.floor(this.millisecond() / 1000);
       };
 
       return Timer;

@@ -7,5 +7,5 @@ define ->
     millisecond: ->
       return Date.now() - @init
     second: ->
-      return @millisecond() / 1000
+      return Math.floor(@millisecond() / 1000)
   return Timer
