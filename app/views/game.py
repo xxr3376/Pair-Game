@@ -1,5 +1,6 @@
 #! encoding=utf-8
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
+import json
 from app.foundation import db
 from .access import access_control
 from flask.ext.login import login_required
@@ -33,11 +34,11 @@ states = {
 
 def result(next):
     if next:
-        result = {}
+        result = {"score":10}
         if next[0]>0:
             result["status"] = "SUCCESS"
             result["round"] = next[1]
-            result["rest"] = next[0]
+            result["round_length"] = next[0]
         else:
             result["status"] = states[next[0]]
     else:
@@ -83,7 +84,7 @@ def prepare_data(token):
     return next_round(token)
 
 #@game.route('/prepare')
-@game.route('/ffake_prepare/<token>')
+@game.route('/fake_prepare/<token>')
 def prepare(token):
     #token = tokent
     release_lock(token)
@@ -107,7 +108,7 @@ def prepare(token):
             redis.db.lpop(waiting_key)
             return jsonify(result([EXIT]))
 
-@game.route('/fake_prepare/<token>')
+@game.route('/ffake_prepare/<token>')
 def fake_prepare(token):
     time.sleep(0.5)
     normal = {
@@ -137,7 +138,7 @@ def fake_prepare(token):
     }
     return jsonify(normal)
 
-@game.route('/fake_submit/<token>', methods=['POST'])
+@game.route('/ffake_submit/<token>', methods=['POST'])
 def fake_submit(token):
     same = {
         "status": "SUCCESS",
@@ -166,17 +167,15 @@ def fake_submit(token):
         "score": 21,
     }
     return jsonify(same)
-@game.route('/hand_in',methods = ['GET','POST'])
-def hand_in():
-    token = tokent
+@game.route('/fake_submit/<token>',methods = ['POST'])
+def hand_in(token):
+    #token = tokent
     waiting_key = waiting_s % token
     ack_key = ack_s % token
-    handin = [12,3]
-    if request.method == 'GET':
-        handin = [13,5]
-    else:
-        json = request.json
-        handin = [json['time'],json['choice']]
+    data = json.loads(request.data)
+    #data = request.get_json()
+    print data
+    handin = [data['time'],data['choice']]
     print request.method,handin
     lock(token)
     print redis.db.llen(waiting_key)
