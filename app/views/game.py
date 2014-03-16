@@ -7,6 +7,8 @@ from flask.ext.login import login_required
 import time
 import uuid
 import random
+import app.models.config as conf
+from app.models.Rounds import Rounds
 from app.foundation import redis
 from .lock import lock
 from .lock import release_lock
@@ -23,29 +25,37 @@ def before_request():
 def index():
     return render_template('game/index.html')
 
-RETRY = -1
-EXIT = -2
-DONE = 0
+TIMEOUT = -4
+RETRY = -2
+EXIT = -3
+DONE = -1
+SUCCESS = 0
 states = {
         EXIT:"EXIT",
         DONE:"DONE",
-        RETRY:"RETRY"
+        RETRY:"RETRY",
+        SUCCESS:"SUCCESS",
+        TIMEOUT:"TIMEOUT"
         }
 
-def result(next):
-    if next:
-        result = {"score":10}
-        if next[0]>0:
-            result["status"] = "SUCCESS"
-            result["round"] = next[1]
-            result["round_length"] = next[0]
-        else:
-            result["status"] = states[next[0]]
+#data = [status, score, rest_time/round_id]
+def result(data):
+    dict_result = dict()
+    print data
+    if data:
+        dict_result["status"] = states[data[0]]
+        dict_result['score'] = data[1]
+        if data[0] == SUCCESS or data[0] == TIMEOUT:
+            jdata = Rounds.get_data(data[3])
+            dict_result["round"] = json.loads(jdata)
+            dict_result["round_length"] = data[2]
+        if (data[0] == RETRY):
+            dict_result["time"] = data[2]
     else:
-        result = {
+        dict_result = {
             "status": "FAIL",
         }
-    return result
+    return dict_result
 
 def register_token(token, user_id):
     pass
@@ -53,187 +63,119 @@ def register_token(token, user_id):
 token_s = 'game:%s'
 waiting_s = 'waiting:%s'
 ack_s = 'ack:%s'
-prepare_timeout = 3
-round_timeout = 10
-tokent = 'tt_token'
+stats_s = 'stats:%s'
+h_score = 'score' #score hash
+h_submit_count = 'submit_count'
+
+def calc_score(token,status=RETRY,time=conf.killing_time):
+    key = stats_s % token
+    cur = float(redis.db.hget(key,h_score))
+    if SUCCESS != status:
+        return cur
+    submits = int(redis.db.hget(key,h_submit_count))
+    print submits,time,conf.killing_time
+    delta = conf.score_per_round
+    for i in range(submits):
+        delta = delta * (1 - conf.diff_penalty)
+    if time>conf.killing_time:
+        delta += (conf.killing_time - time) * conf.timeout_penalty
+    cur += delta
+    redis.db.hset(key,h_score,cur)
+    return cur
 
 def next_round(token):
-    # id = next round play
     token_key = token_s % token
+    stats_key = stats_s % token
+    redis.db.hset(stats_key,h_submit_count,0)
     length = redis.db.llen(token_key)
-    rtn = [length]
+    rtn = [length-1]
     if 0 != length:
-        origin = eval(redis.db.lpop(token_key))
-        rounds = []
-        for item in origin:
-            rounds.append({'path':item[1],'id':item[0]})
-        rtn.append(rounds)
+        rid = int(redis.db.lpop(token_key))
+        rtn.append(rid)
     return rtn
 
-import re
-pat = re.compile('\[(\d+),\s*(.+)\]')
-def parse_round(rtn):
-    return eval(rtn)
+def parse_ack(data):
+    return map(float,data.split("#"))
+def build_ack(data):
+    return "#".join(map(str,data))
+
 def prepare_data(token):
-    rounds = [[[11,'hello'],[12,'hello'],[13,'hello'],],
-            [[103,'hello'],[102,'hello'],[101,'hello'],],
-            [[120,'hello'],[110,'hello'],[1,'hello'],]]
+    stats_key = stats_s % token
     token_key = token_s % token
+    stats_key = stats_s % token
+    score_init = conf.score_init
+    redis.db.hset(stats_key,h_score,score_init)
+    rounds = Rounds.get_rounds(conf.rounds_init)
     for round in rounds:
         redis.db.lpush(token_key,round)
-    return next_round(token)
+    data = next_round(token)
+    return [SUCCESS,score_init,data[0],data[1]]
 
 #@game.route('/prepare')
 @game.route('/fake_prepare/<token>')
 def prepare(token):
-    #token = tokent
     release_lock(token)
     lock(token)
     waiting_key = waiting_s % token
     ack_key = ack_s % token
     ack = redis.db.lpop(waiting_key)
     if ack:
-        rtn = prepare_data(token)
-        redis.db.rpush(ack_key,rtn)
+        data = prepare_data(token)
+        redis.db.rpush(ack_key,build_ack(data))
         release_lock(token)
-        return jsonify(result(rtn))
+        return jsonify(result(data))
     else:
         redis.db.rpush(waiting_key,token)
         release_lock(token)
-        ack = redis.db.blpop(ack_key,prepare_timeout)
+        ack = redis.db.blpop(ack_key,conf.prepare_timeout)
         if ack:
             _,rtn = ack
-            return jsonify(result(parse_round(rtn)))
+            return jsonify(result(parse_ack(rtn)))
         else:
             redis.db.lpop(waiting_key)
-            return jsonify(result([EXIT]))
+            return jsonify(result([EXIT,calc_score(token)]))
 
-@game.route('/ffake_prepare/<token>')
-def fake_prepare(token):
-    time.sleep(0.5)
-    normal = {
-        "status": "SUCCESS",
-        "round_length": 25, #TODO
-        "round": [
-            {
-                "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=e2e827248418367aad8978dd1a4b8ad4/09fa513d269759ee6fd48ac6b0fb43166d22df33.jpg",
-                "id": "219329311",
-            },
-            {
-                "path": "http://a.hiphotos.baidu.com/image/w%3D2048/sign=e5caaaa8e61190ef01fb95dffa239f16/bd3eb13533fa828bc6e1e7a6fc1f4134960a5ab0.jpg",
-                "id": "219329312",
-            },
-            {
-                "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=ce91af251bd8bc3ec60801cab6b3a61e/8694a4c27d1ed21bace434faaf6eddc451da3ffb.jpg",
-                "id": "219329313",
-            },
-        ]
-    }
-    partener_exit = {
-        "status": "EXIT"
-    }
-    # user do not belong to this token, you can combine into partener_exit
-    invaild = {
-        "status": "INVAILD"
-    }
-    return jsonify(normal)
-
-@game.route('/ffake_submit/<token>', methods=['POST'])
-def fake_submit(token):
-    same = {
-        "status": "SUCCESS",
-        "score": 36,
-        "round": [
-            {
-                "path": "http://a.hiphotos.baidu.com/image/w%3D2048/sign=e5caaaa8e61190ef01fb95dffa239f16/bd3eb13533fa828bc6e1e7a6fc1f4134960a5ab0.jpg",
-                "id": "219329312",
-            },
-            {
-                "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=e2e827248418367aad8978dd1a4b8ad4/09fa513d269759ee6fd48ac6b0fb43166d22df33.jpg",
-                "id": "219329311",
-            },
-            {
-                "path": "http://c.hiphotos.baidu.com/image/w%3D2048/sign=ce91af251bd8bc3ec60801cab6b3a61e/8694a4c27d1ed21bace434faaf6eddc451da3ffb.jpg",
-                "id": "219329313",
-            },
-        ]
-    }
-    diff = {
-        "status": "RETRY",
-        "score": 35,
-    }
-    timeout = {
-        "status": "EXIT",
-        "score": 21,
-    }
-    return jsonify(same)
 @game.route('/fake_submit/<token>',methods = ['POST'])
 def hand_in(token):
-    #token = tokent
     waiting_key = waiting_s % token
     ack_key = ack_s % token
     data = json.loads(request.data)
-    #data = request.get_json()
-    print data
-    handin = [data['time'],data['choice']]
-    print request.method,handin
+    handin = []
+    if (data['type'] == 'timeout'):
+        handin = [TIMEOUT]
+    else:
+        handin = [data['time'],data['choice']]
     lock(token)
-    print redis.db.llen(waiting_key)
     mate_handin = redis.db.lpop(waiting_key)
-    print mate_handin,redis.db.llen(waiting_key)
     if mate_handin:
-        mate_handin = eval(mate_handin)
+        mate = parse_ack(mate_handin)
         time = handin[0]
-        if time<mate_handin[0]:
-            time = mate_handin[0]
         ack = None
-        if handin[1] == mate_handin[1]:
-            ack = next_round(token)
+        if time==TIMEOUT or mate[0] == TIMEOUT:
+            data = next_round(token)
+            ack = [TIMEOUT,calc_score(token),data[0],data[1]]    
         else:
-            ack = [RETRY]
-        print "ACK0 %s " % ack
-        redis.db.rpush(ack_key,ack)
+            if time<mate[0]:
+                time = mate[0]
+            if mate[1] == handin[1]:
+                score = calc_score(token,SUCCESS,time)
+                data = next_round(token)
+                ack = [SUCCESS,score,data[0],data[1]]
+            else:
+                ack = [RETRY,calc_score(token),time]
+                key = stats_s % token
+                redis.db.hincrby(key,h_submit_count,1)
+        redis.db.rpush(ack_key,build_ack(ack))
         release_lock(token)
         return jsonify(result(ack))
     else:
-        redis.db.rpush(waiting_key,handin)
+        redis.db.rpush(waiting_key,build_ack(handin))
         release_lock(token)
-        msg = redis.db.blpop(ack_key,round_timeout)
+        msg = redis.db.blpop(ack_key,conf.round_timeout)
         if msg:
             _,ack = msg
-            return jsonify(result(parse_round(ack)))
+            return jsonify(result(parse_ack(ack)))
         else:
             redis.db.lpop(waiting_key)
-            return jsonify(result([EXIT]))
+            return jsonify(result([EXIT,calc_score(token)]))
 
-def original():
-    game_lock()
-    mate = redis.db.spop(waiting_key)
-    result = {}
-    if mate:
-        #has mate
-        release_lock()
-        mate_key = user_key % mate
-        token = uuid.uuid1()
-        redis.db.rpush(mate_key, token)
-        result = generate_enqueue_result(token)
-        register_token(token, g.user.id)
-    else:
-        # start waiting
-        self_key = user_key % g.user.id
-        redis.db.delete(self_key)
-        redis.db.sadd(waiting_key, g.user.id)
-        release_lock()
-        message = redis.db.blpop(self_key, timeout=20)
-        if message:
-            _, token = message
-        else:
-            token = None
-        result = generate_enqueue_result(token)
-
-        if token:
-            register_token(token, g.user.id)
-        else:
-            redis.db.srem(waiting_key, g.user.id)
-
-    return jsonify(result)
