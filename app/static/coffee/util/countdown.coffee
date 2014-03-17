@@ -11,6 +11,7 @@ define(['util/timer', 'util/type', 'util/events'], (Timer, Type, Events) ->
       next = ((@counter + 1)  * @interval) * 1000
       return next - @timer.millisecond()
     start: ->
+      @stop()
       @timer = new Timer()
       @counter = 0
       target = @time / @interval
@@ -27,5 +28,6 @@ define(['util/timer', 'util/type', 'util/events'], (Timer, Type, Events) ->
       @trigger Countdown.Events.TICK, 0
     stop: ->
       clearTimeout @handler
+    current: ->
       return @timer.second()
 )

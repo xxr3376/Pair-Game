@@ -33,7 +33,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
 
     # global var
     hightlight = [0, 0, 0]
-    game_length = SETTINGS.game_length
 
     # util
     toggle_input = (dom, state) ->
@@ -47,7 +46,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       hightlight = [0, 0, 0]
 
     init_round = (data) ->
-      length_dom.text game_length
       for i in [0...3]
         choice[i].attr 'src', data[i].path
       time_dom.text ''
@@ -65,6 +63,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         switch data.status
           when 'SUCCESS'
             init_round data.round
+            length_dom.text data.round_length
           when 'EXIT'
             ($ '#modal-exit').modal('show')
           when 'INVAILD'
@@ -93,20 +92,23 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       )
       promise.then(
         (data) ->
-          console.log data
           switch data.status
-            when 'SUCCESS'
-              game_length -= 1
+            when 'SUCCESS', 'TIMEOUT'
+              countdown.stop()
               init_round data.round
-              score_dom.text data.score
+              score_dom.text (parseInt data.score)
+              length_dom.text data.round_length
               toggle_input submit_dom, true
             when 'RETRY'
               # TODO
               clear_action()
+              score_dom.text (parseInt data.score)
               toggle_input submit_dom, true
             when 'DONE'
+              countdown.stop()
               ($ '#modal-win').modal('show')
             when 'EXIT'
+              countdown.stop()
               ($ '#modal-exit').modal('show')
           toggle_input submit_dom, true
           loading.fadeOut 300
@@ -124,7 +126,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         return
       data =
         type: 'normal'
-        time: countdown.stop()
+        time: countdown.current()
         choice: unselected
       submit data
     countdown.on Countdown.Events.DONE, ->
