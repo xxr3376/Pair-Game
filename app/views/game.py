@@ -92,6 +92,8 @@ def next_round(token):
     if 0 != length:
         rid = int(redis.db.lpop(token_key))
         rtn.append(rid)
+    else:
+        rtn.append(0)
     return rtn
 
 def parse_ack(data):
@@ -153,6 +155,7 @@ def hand_in(token):
         ack = None
         if time==TIMEOUT or mate[0] == TIMEOUT:
             data = next_round(token)
+            print data
             ack = [TIMEOUT,calc_score(token),data[0],data[1]]    
         else:
             if time<mate[0]:
@@ -160,7 +163,10 @@ def hand_in(token):
             if mate[1] == handin[1]:
                 score = calc_score(token,SUCCESS,time)
                 data = next_round(token)
-                ack = [SUCCESS,score,data[0],data[1]]
+                if data[0]<0:
+                    ack = [DONE,score]
+                else:
+                    ack = [SUCCESS,score,data[0],data[1]]
             else:
                 ack = [RETRY,calc_score(token),time]
                 key = stats_s % token
