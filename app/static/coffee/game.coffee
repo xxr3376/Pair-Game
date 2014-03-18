@@ -24,7 +24,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     length_dom = $ '#game-length'
 
     ($ '#modal-exit, #modal-win').on 'hide', ->
-      location.href = '/team'
+      #location.href = '/team'
 
 
     # show loading at first
@@ -35,6 +35,22 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     hightlight = [0, 0, 0]
 
     # util
+    alert = do ->
+      # store timeout handler for hide message
+      hideHandler = -1
+      alert_dom = $ '#alert'
+
+      hideFunction = ->
+        alert_dom.attr 'class', 'alert'
+        alert_dom.html '&nbsp;'
+
+      return (html, type = "info") ->
+        alert_dom.html html
+        alert_dom.attr 'class', "alert alert-#{type}"
+        if hideHandler != -1
+          clearTimeout hideHandler
+        hideHandler = setTimeout hideFunction, 2000
+
     toggle_input = (dom, state) ->
       if state
         dom.attr 'disabled', false
@@ -58,6 +74,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       if timepass == SETTINGS.punishment_time
         time_dom.removeClass 'take-easy'
 
+
     promise.then(
       (data) ->
         switch data.status
@@ -67,11 +84,14 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
           when 'EXIT'
             ($ '#modal-exit').modal('show')
           when 'INVAILD'
-            alert 'you are not belong here'
+            ($ '#modal-exit').modal('show')
             location.href = '/team'
         loading.fadeOut 300
     )
     ($ '.choice').on 'click', ->
+      console.trace()
+      submit_dom.popover 'hide'
+
       count = 0
       count += 1 for state in hightlight when state
       if count == 2 and hightlight[@.dataset.num] is 0
@@ -81,6 +101,8 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       @.classList.toggle 'active'
 
     submit = (data) ->
+      console.trace()
+      submit_dom.popover 'hide'
       toggle_input submit_dom, false
       loading.fadeIn 300
       promise = Q $.ajax(
@@ -94,17 +116,19 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         (data) ->
           switch data.status
             when 'SUCCESS', 'TIMEOUT'
+              alert 'Great! Next Round', 'success'
               countdown.stop()
               init_round data.round
               score_dom.text (parseInt data.score)
               length_dom.text data.round_length
               toggle_input submit_dom, true
             when 'RETRY'
-              # TODO
+              alert 'Your choice do not pair with your partener, please retry', 'danger'
               clear_action()
               score_dom.text (parseInt data.score)
               toggle_input submit_dom, true
             when 'DONE'
+              alert 'You Win!', 'success'
               countdown.stop()
               ($ '#modal-win').modal('show')
             when 'EXIT'
@@ -115,6 +139,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
           return
       )
 
+    submit_dom.popover trigger: 'manual'
     submit_dom.on 'click', ->
       count = 0
       unselected = -1
@@ -122,7 +147,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         count += 1 if hightlight[i]
         unselected = i if not hightlight[i]
       if count != 2
-        #TODO show tips
+        submit_dom.popover 'show'
         return
       data =
         type: 'normal'
