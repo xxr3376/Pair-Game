@@ -52,7 +52,9 @@ class User(db.Model):
     @staticmethod
     def online_users():
         min_ago = datetime.datetime.utcnow()-datetime.timedelta(minutes=1)
-        query = User.query.filter(User.last_seen>min_ago)
+        query = User.query\
+                .filter_by(role=ROLE['NORMAL'])\
+                .filter(User.last_seen>min_ago)
         return query.count()
     @staticmethod
     def create_password(raw):

@@ -33,10 +33,11 @@ def get(key):
     load()
     return _current[key]
 
-def set(key, value):
+def set_(key, value):
     load()
     _current[key] = value
 
+def dump():
     config_str = json.dumps(_current)
     redis.db.set(_CONFIG_KEY_, config_str)
     return
