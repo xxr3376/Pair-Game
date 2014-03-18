@@ -7,7 +7,7 @@ from flask.ext.login import login_required
 import time
 import uuid
 import random
-import app.models.config as conf
+from app.models.config import get as conf
 from app.models.Rounds import Rounds
 from app.foundation import redis
 from .lock import lock
@@ -67,18 +67,20 @@ stats_s = 'stats:%s'
 h_score = 'score' #score hash
 h_submit_count = 'submit_count'
 
-def calc_score(token,status=RETRY,time=conf.killing_time):
+def calc_score(token,status=RETRY,time=-1):
+    if time == -1:
+        time = conf('killing_time')
     key = stats_s % token
     cur = float(redis.db.hget(key,h_score))
     if SUCCESS != status:
         return cur
     submits = int(redis.db.hget(key,h_submit_count))
-    print submits,time,conf.killing_time
-    delta = conf.score_per_round
+    print submits,time,conf('killing_time')
+    delta = conf('score_per_round')
     for i in range(submits):
-        delta = delta * (1 - conf.diff_penalty)
-    if time>conf.killing_time:
-        delta += (conf.killing_time - time) * conf.timeout_penalty
+        delta = delta * (1 - conf('diff_penalty'))
+    if time>conf('killing_time'):
+        delta += (conf('killing_time') - time) * conf('timeout_penalty')
     cur += delta
     redis.db.hset(key,h_score,cur)
     return cur
@@ -105,9 +107,9 @@ def prepare_data(token):
     stats_key = stats_s % token
     token_key = token_s % token
     stats_key = stats_s % token
-    score_init = conf.score_init
+    score_init = conf('score_init')
     redis.db.hset(stats_key,h_score,score_init)
-    rounds = Rounds.get_rounds(conf.rounds_init)
+    rounds = Rounds.get_rounds(conf('rounds_init'))
     for round in rounds:
         redis.db.lpush(token_key,round)
     data = next_round(token)
@@ -129,7 +131,7 @@ def prepare(token):
     else:
         redis.db.rpush(waiting_key,token)
         release_lock(token)
-        ack = redis.db.blpop(ack_key,conf.prepare_timeout)
+        ack = redis.db.blpop(ack_key,conf('prepare_timeout'))
         if ack:
             _,rtn = ack
             return jsonify(result(parse_ack(rtn)))
@@ -177,7 +179,7 @@ def hand_in(token):
     else:
         redis.db.rpush(waiting_key,build_ack(handin))
         release_lock(token)
-        msg = redis.db.blpop(ack_key,conf.round_timeout)
+        msg = redis.db.blpop(ack_key,conf('round_timeout'))
         if msg:
             _,ack = msg
             return jsonify(result(parse_ack(ack)))
