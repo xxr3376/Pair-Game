@@ -3,7 +3,7 @@ from app.foundation import redis
 
 DEFAULT = {
     "score_per_round": 40,
-    "killing_time":  0,
+    "killing_time":  0, #should be 20
     "total_time": 60,
     "timeout_penalty": 1,
     "diff_penalty": 1.0/3,

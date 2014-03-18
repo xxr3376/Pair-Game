@@ -13,7 +13,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     if not token
       return
     # send prepare request as soon as possible
-    promise = Q ($.getJSON "/game/fake_prepare/#{token}")
+    promise = Q ($.getJSON "/game/prepare/#{token}")
 
     # dom
     loading = $ '#loading'
@@ -108,7 +108,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       toggle_input submit_dom, false
       loading.fadeIn 300
       promise = Q $.ajax(
-        url: "/game/fake_submit/#{token}"
+        url: "/game/submit/#{token}"
         type: 'POST'
         dataType: 'json'
         contentType: 'application/json'

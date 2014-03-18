@@ -1,17 +1,15 @@
-#! encoding=utf-8
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
+#! encoding=utf-7
+from flask import Blueprint, render_template, request, g, jsonify, abort
 import json
-from app.foundation import db
 from .access import access_control
+from app.foundation import redis
+
 from flask.ext.login import login_required
-import time
-import uuid
-import random
 from app.models.config import get as conf
 from app.models.Rounds import Rounds
-from app.foundation import redis
-from .lock import lock
-from .lock import release_lock
+from app.models.game import Game, TimeoutError
+
+from .lock import lock, release_lock
 
 game = Blueprint('game', __name__)
 
@@ -25,165 +23,103 @@ def before_request():
 def index():
     return render_template('game/index.html')
 
-TIMEOUT = -4
-RETRY = -2
-EXIT = -3
-DONE = -1
-SUCCESS = 0
-states = {
-        EXIT:"EXIT",
-        DONE:"DONE",
-        RETRY:"RETRY",
-        SUCCESS:"SUCCESS",
-        TIMEOUT:"TIMEOUT"
-        }
+states_map = {
+    "new": "SUCCESS",
+    "match": "SUCCESS",
+    "unmatch": "RETRY",
+    "timeout": "TIMEOUT",
+    "exit": "EXIT",
+    "done": "DONE",
+}
+def create_response(cur_game, ack):
+    print '-------------'
+    print ack
+    ret = {
+        "status": states_map[ack['type']],
+        "score": cur_game.get_attr('score'),
+    }
+    if ack['type'] in ['match', 'timeout', 'new']:
+        ret["round_length"]= cur_game.round_queue_length(),
+        print ack['next']
+        cur_round = Rounds.query.get(ack['next'])
+        ret['round'] = json.loads(cur_round.data)
+    return jsonify(ret)
 
-#data = [status, score, rest_time/round_id]
-def result(data):
-    dict_result = dict()
-    print data
-    if data:
-        dict_result["status"] = states[data[0]]
-        dict_result['score'] = data[1]
-        if data[0] == SUCCESS or data[0] == TIMEOUT:
-            jdata = Rounds.get_data(data[3])
-            dict_result["round"] = json.loads(jdata)
-            dict_result["round_length"] = data[2]
-        if (data[0] == RETRY):
-            dict_result["time"] = data[2]
-    else:
-        dict_result = {
-            "status": "FAIL",
-        }
-    return dict_result
-
-def register_token(token, user_id):
-    pass
-
-token_s = 'game:%s'
-waiting_s = 'waiting:%s'
-ack_s = 'ack:%s'
-stats_s = 'stats:%s'
-h_score = 'score' #score hash
-h_submit_count = 'submit_count'
-
-def calc_score(token,status=RETRY,time=-1):
-    if time == -1:
-        time = conf('killing_time')
-    key = stats_s % token
-    cur = float(redis.db.hget(key,h_score))
-    if SUCCESS != status:
-        return cur
-    submits = int(redis.db.hget(key,h_submit_count))
-    print submits,time,conf('killing_time')
-    delta = conf('score_per_round')
-    for i in range(submits):
-        delta = delta * (1 - conf('diff_penalty'))
-    if time>conf('killing_time'):
-        delta += (conf('killing_time') - time) * conf('timeout_penalty')
-    cur += delta
-    redis.db.hset(key,h_score,cur)
-    return cur
-
-def next_round(token):
-    token_key = token_s % token
-    stats_key = stats_s % token
-    redis.db.hset(stats_key,h_submit_count,0)
-    length = redis.db.llen(token_key)
-    rtn = [length-1]
-    if 0 != length:
-        rid = int(redis.db.lpop(token_key))
-        rtn.append(rid)
-    else:
-        rtn.append(0)
-    return rtn
-
-def parse_ack(data):
-    return map(float,data.split("#"))
-def build_ack(data):
-    return "#".join(map(str,data))
-
-def prepare_data(token):
-    stats_key = stats_s % token
-    token_key = token_s % token
-    stats_key = stats_s % token
-    score_init = conf('score_init')
-    redis.db.hset(stats_key,h_score,score_init)
-    rounds = Rounds.get_rounds(conf('rounds_init'))
-    for round in rounds:
-        redis.db.lpush(token_key,round)
-    data = next_round(token)
-    return [SUCCESS,score_init,data[0],data[1]]
-
-#@game.route('/prepare')
-@game.route('/fake_prepare/<token>')
+@game.route('/prepare/<token>')
 def prepare(token):
-    release_lock(token)
-    lock(token)
-    waiting_key = waiting_s % token
-    ack_key = ack_s % token
-    ack = redis.db.lpop(waiting_key)
-    if ack:
-        data = prepare_data(token)
-        redis.db.rpush(ack_key,build_ack(data))
-        release_lock(token)
-        return jsonify(result(data))
-    else:
-        redis.db.rpush(waiting_key,token)
-        release_lock(token)
-        ack = redis.db.blpop(ack_key,conf('prepare_timeout'))
-        if ack:
-            _,rtn = ack
-            return jsonify(result(parse_ack(rtn)))
-        else:
-            redis.db.lpop(waiting_key)
-            return jsonify(result([EXIT,calc_score(token)]))
+    output = None
+    cur_game = Game.get_by_token(token)
+    if cur_game and cur_game.participate(g.user):
+        cur_game.lock()
+        waiting = cur_game.pop_waiting()
+        if waiting:
+            rounds = Rounds.get_rounds(conf('rounds_init'))
+            cur_game.init(conf('score_init'), rounds)
 
-@game.route('/fake_submit/<token>',methods = ['POST'])
+            output = {"type": "new", "next": cur_game.new_round()}
+            cur_game.notice(output)
+            cur_game.unlock()
+        else:
+            try:
+                output = cur_game.declare_and_wait(g.user.id, conf('prepare_timeout'))
+            except TimeoutError:
+                output = {"type": "exit"}
+    else:
+        output = {"type": "exit"}
+    return create_response(cur_game, output)
+
+@game.route('/submit/<token>',methods = ['POST'])
 def hand_in(token):
-    waiting_key = waiting_s % token
-    ack_key = ack_s % token
-    data = json.loads(request.data)
-    handin = []
-    if (data['type'] == 'timeout'):
-        handin = [TIMEOUT]
-    else:
-        handin = [data['time'],data['choice']]
-    lock(token)
-    mate_handin = redis.db.lpop(waiting_key)
-    if mate_handin:
-        mate = parse_ack(mate_handin)
-        time = handin[0]
-        ack = None
-        if time==TIMEOUT or mate[0] == TIMEOUT:
-            data = next_round(token)
-            print data
-            ack = [TIMEOUT,calc_score(token),data[0],data[1]]    
-        else:
-            if time<mate[0]:
-                time = mate[0]
-            if mate[1] == handin[1]:
-                score = calc_score(token,SUCCESS,time)
-                data = next_round(token)
-                if data[0]<0:
-                    ack = [DONE,score]
-                else:
-                    ack = [SUCCESS,score,data[0],data[1]]
-            else:
-                ack = [RETRY,calc_score(token),time]
-                key = stats_s % token
-                redis.db.hincrby(key,h_submit_count,1)
-        redis.db.rpush(ack_key,build_ack(ack))
-        release_lock(token)
-        return jsonify(result(ack))
-    else:
-        redis.db.rpush(waiting_key,build_ack(handin))
-        release_lock(token)
-        msg = redis.db.blpop(ack_key,conf('round_timeout'))
-        if msg:
-            _,ack = msg
-            return jsonify(result(parse_ack(ack)))
-        else:
-            redis.db.lpop(waiting_key)
-            return jsonify(result([EXIT,calc_score(token)]))
+    cur_game = Game.get_by_token(token)
+    if not cur_game or not cur_game.participate(g.user):
+        abort(400)
 
+    data = request.get_json()
+    if not data:
+        abort(400)
+
+    if data['type'] == 'timeout':
+        handin = { "timeout": True }
+    else:
+        handin = {
+            "timeout": False,
+            "time": data['time'],
+            "choice": data['choice']
+        }
+    cur_game.lock()
+    mate = cur_game.pop_waiting()
+    ack = None
+    if mate:
+        if handin['timeout'] or mate['timeout']:
+            cur_game.update_score("timeout")
+
+            next_id = cur_game.new_round()
+            ack = {"type": "timeout"}
+            if next_id:
+                ack["next"] = next_id
+            else:
+                ack["type"] = "done"
+        else:
+            time = max(handin['time'], mate['time'])
+            if mate['choice'] == handin['choice']:
+                cur_game.update_score('match', time)
+
+                next_id = cur_game.new_round()
+                ack = {"type": "match"}
+                if next_id:
+                    ack["next"] = next_id
+                else:
+                    ack["type"] = "done"
+            else:
+                ack = { "type": "unmatch" }
+                count = cur_game.get_attr('submit_count')
+                count += 1
+                cur_game.set_attr('submit_count', count)
+        cur_game.notice(ack)
+        cur_game.unlock()
+    else:
+        try:
+            ack = cur_game.declare_and_wait(handin, conf('round_timeout') - handin['time'])
+        except TimeoutError:
+            ack = {"type": "exit"}
+    return create_response(cur_game, ack)

@@ -1,14 +1,14 @@
 #! encoding=utf-8
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
-from app.foundation import db
+from flask import Blueprint, render_template, g, jsonify
 from .access import access_control
 from flask.ext.login import login_required
-import time
+
+from app.foundation import db, redis
+from app.models.lock import lock, release_lock
+from app.models.game import Game
+
+from datetime import datetime
 import uuid
-import random
-from app.foundation import redis
-from .lock import lock
-from .lock import release_lock
 
 team = Blueprint('team', __name__)
 
@@ -36,6 +36,14 @@ def generate_enqueue_result(token):
     return result
 
 def register_token(token, user_id1, user_id2):
+    game = Game(p1=user_id1, p2=user_id2,\
+            state=Game.NEW,\
+            createtime=datetime.utcnow(),\
+            score=0\
+        )
+    db.session.add(game)
+    db.session.commit()
+    game.save_map(token)
     pass
 
 waiting_key = "team:waiting"
