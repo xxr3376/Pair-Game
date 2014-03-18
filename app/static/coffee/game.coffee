@@ -24,7 +24,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     length_dom = $ '#game-length'
 
     ($ '#modal-exit, #modal-win').on 'hide', ->
-      #location.href = '/team'
+      location.href = '/team'
 
 
     # show loading at first
@@ -33,6 +33,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
 
     # global var
     hightlight = [0, 0, 0]
+    ingame = false
 
     # util
     alert = do ->
@@ -81,6 +82,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
           when 'SUCCESS'
             init_round data.round
             length_dom.text data.round_length
+            ingame = true
           when 'EXIT'
             ($ '#modal-exit').modal('show')
           when 'INVAILD'
@@ -131,9 +133,11 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
               alert 'You Win!', 'success'
               countdown.stop()
               ($ '#modal-win').modal('show')
+              ingame = false
             when 'EXIT'
               countdown.stop()
               ($ '#modal-exit').modal('show')
+              ingame = false
           toggle_input submit_dom, true
           loading.fadeOut 300
           return
@@ -158,4 +162,10 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       data =
         type: 'timeout'
       submit data
+    window.onbeforeunload = (e) ->
+      if ingame
+        message = 'You are still in game, Are you going to exit?'
+        e = e or window.event
+        e.returnValue = message if e
+        return message
 )
