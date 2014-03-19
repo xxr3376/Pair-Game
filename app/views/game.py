@@ -43,6 +43,7 @@ def create_response(cur_game, ack):
         print ack['next']
         cur_round = Rounds.query.get(ack['next'])
         ret['round'] = json.loads(cur_round.data)
+        cur_game.set_attr('current_round',ack['next'])
     return jsonify(ret)
 
 @game.route('/prepare/<token>')
@@ -55,15 +56,16 @@ def prepare(token):
         if waiting:
             rounds = Rounds.get_rounds(conf('rounds_init'))
             cur_game.init(conf('score_init'), rounds)
-
-            output = {"type": "new", "next": cur_game.new_round()}
+            output = cur_game.new_round()
+            if output.get("type") != 'done':
+                output["type"] = 'new'
             cur_game.notice(output)
             cur_game.unlock()
         else:
             try:
                 output = cur_game.declare_and_wait(g.user.id, conf('prepare_timeout'))
             except TimeoutError:
-                output = {"type": "exit"}
+                output = cur_game.timeout()
     else:
         output = {"type": "exit"}
     return create_response(cur_game, output)
@@ -79,7 +81,7 @@ def hand_in(token):
         abort(400)
 
     if data['type'] == 'timeout':
-        handin = { "timeout": True }
+        handin = { "timeout": True, 'time':conf('total_time')}
     else:
         handin = {
             "timeout": False,
@@ -92,24 +94,16 @@ def hand_in(token):
     if mate:
         if handin['timeout'] or mate['timeout']:
             cur_game.update_score("timeout")
-
-            next_id = cur_game.new_round()
-            ack = {"type": "timeout"}
-            if next_id:
-                ack["next"] = next_id
-            else:
-                ack["type"] = "done"
+            ack = cur_game.new_round()
+            if ack.get("type") != 'done':
+                ack['type'] = 'timeout'
         else:
             time = max(handin['time'], mate['time'])
             if mate['choice'] == handin['choice']:
                 cur_game.update_score('match', time)
-
-                next_id = cur_game.new_round()
-                ack = {"type": "match"}
-                if next_id:
-                    ack["next"] = next_id
-                else:
-                    ack["type"] = "done"
+                ack = cur_game.new_round()
+                if ack.get("type") != 'done':
+                    ack['type'] = 'match'
             else:
                 ack = { "type": "unmatch" }
                 count = cur_game.get_attr('submit_count')
@@ -121,5 +115,5 @@ def hand_in(token):
         try:
             ack = cur_game.declare_and_wait(handin, conf('round_timeout') - handin['time'])
         except TimeoutError:
-            ack = {"type": "exit"}
+            ack = cur_game.timeout()
     return create_response(cur_game, ack)

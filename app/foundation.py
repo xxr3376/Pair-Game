@@ -11,6 +11,10 @@ class Redis(object):
     @property
     def db(self):
         return self._db
+    def blpop(self,key,timeout):
+        if timeout<0.1:
+            timeout = 0.1
+        return self._db.blpop(key, timeout)
 
 db = SQLAlchemy()
 login_manager = LoginManager()

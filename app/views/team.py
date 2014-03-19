@@ -71,7 +71,7 @@ def enqueue():
         redis.db.delete(self_key)
         redis.db.sadd(waiting_key, g.user.id)
         release_lock(lock_key)
-        message = redis.db.blpop(self_key, timeout=2)
+        message = redis.db.blpop(self_key, timeout=20)
         if message:
             _, token = message
         else:

@@ -17,6 +17,7 @@ class Game(db.Model):
     state = db.Column(db.Integer, index=True)
     score = db.Column(db.Integer)
     createtime = db.Column(db.DateTime, index=True)
+    current_round_id = db.Column(db.Integer)
 
     def save_map(self, token):
         key = token_format % token
@@ -28,6 +29,7 @@ class Game(db.Model):
         return False
 
     def init(self, score, rounds):
+        self.set_attr('current_round',-1)
         self.set_attr("score", score)
         self.set_attr("submit_count", 0)
         self.create_round_queue(rounds)
@@ -50,17 +52,23 @@ class Game(db.Model):
         key = self.round_queue_key
         redis.db.delete(key)
         redis.db.lpush(key, *rounds)
+    
+    #one has been left
+    def timeout(self):
+        self.set_attr('state',self.FAIL)
+        return {"type": "exit"}
 
     # get a new round from queue
     def new_round(self):
         self.set_attr("submit_count", 0)
-        #self.set_attr('state',PLAYING)
+        self.set_attr('state',self.PLAYING)
         key = self.round_queue_key
         result = redis.db.lpop(key)
         if result:
-            return int(result)
+            return {'next':int(result)}
         else:
-            return None
+            self.state = self.FINISH
+            return {'type':'done'}
 
     def round_queue_length(self):
         return redis.db.llen(self.round_queue_key)
@@ -101,7 +109,7 @@ class Game(db.Model):
         data = json.dumps(message)
         redis.db.rpush(self.wait_key, data)
         self.unlock()
-        recv = redis.db.blpop(self.ack_key, timeout)
+        recv = redis.blpop(self.ack_key, timeout)
         if recv:
             return json.loads(recv[1])
         else:
