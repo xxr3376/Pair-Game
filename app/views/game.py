@@ -36,7 +36,7 @@ def create_response(cur_game, ack):
     print ack
     ret = {
         "status": states_map[ack['type']],
-        "score": cur_game.get_attr('score'),
+        "score": cur_game.get_attr('score') if cur_game else 0,
     }
     if ack['type'] in ['match', 'timeout', 'new']:
         ret["round_length"]= cur_game.round_queue_length(),

@@ -2,13 +2,17 @@ import random
 import time
 from app.foundation import redis
 
+class TimeoutError():
+    def __repr__(self):
+        return "lock timeout error"
 
 def _lock_(key, hkey):
     count = 0
     while True:
         count += 1
         if count == 100:
-            raise 'lock timeout error'
+            #raise "it cannot happen!"
+            raise TimeoutError()
         lock = redis.db.hget(key, hkey)
         print lock
         if lock == None or int(lock) == 0:

@@ -31,6 +31,7 @@ class Game(db.Model):
         self.set_attr("score", score)
         self.set_attr("submit_count", 0)
         self.create_round_queue(rounds)
+        self.state = self.NEW
         pass
 
     @classmethod
@@ -53,6 +54,7 @@ class Game(db.Model):
     # get a new round from queue
     def new_round(self):
         self.set_attr("submit_count", 0)
+        #self.set_attr('state',PLAYING)
         key = self.round_queue_key
         result = redis.db.lpop(key)
         if result:
