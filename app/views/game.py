@@ -32,15 +32,15 @@ states_map = {
     "done": "DONE",
 }
 def create_response(cur_game, ack):
-    print '-------------'
-    print ack
+    #print '-------------'
+    #print ack
     ret = {
         "status": states_map[ack['type']],
         "score": cur_game.get_attr('score') if cur_game else 0,
     }
     if ack['type'] in ['match', 'timeout', 'new']:
         ret["round_length"]= cur_game.round_queue_length(),
-        print ack['next']
+        #print ack['next']
         cur_round = Rounds.query.get(ack['next'])
         ret['round'] = json.loads(cur_round.data)
         cur_game.set_attr('current_round',ack['next'])
