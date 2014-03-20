@@ -21,10 +21,10 @@ def load():
     global init
     global _current
     if not init:
+        init = True
         db_config = redis.db.get(_CONFIG_KEY_)
         if not db_config:
             _current = DEFAULT
-            init = True
         else:
             _current = json.loads(db_config)
     return

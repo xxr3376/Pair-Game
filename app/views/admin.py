@@ -33,8 +33,8 @@ def setting():
     if form.validate_on_submit():
         for key in avaliable:
             config.set_(key, getattr(form, key).data)
-            config.dump()
-            return redirect(url_for('.index'))
+        config.dump()
+        return redirect(url_for('.index'))
     for key in avaliable:
         getattr(form, key).data = config.get(key)
     return render_template('admin/setting.html', form=form)
