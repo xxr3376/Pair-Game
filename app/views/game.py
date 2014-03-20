@@ -8,7 +8,7 @@ from flask.ext.login import login_required
 from app.models.config import get as conf
 from app.models.Rounds import Rounds
 from app.models.game import Game, TimeoutError
-
+from app.models.log import Log
 from app.models.lock import lock, release_lock
 
 game = Blueprint('game', __name__)
@@ -31,12 +31,21 @@ states_map = {
     "exit": "EXIT",
     "done": "DONE",
 }
-def create_response(cur_game, ack):
+def create_response(cur_game, ack,actions = None):
     #print '-------------'
     #print ack
+    score = cur_game.get_attr('score') if cur_game else 0
+    if actions and (len(actions)==2 or ack['type'] == 'exit'):
+        item = Log.create(
+                cur_game.id,
+                cur_game.get_attr('current_round'),
+                cur_game.get_attr('submit_count'),
+                score,
+                actions)
+        print item
     ret = {
         "status": states_map[ack['type']],
-        "score": cur_game.get_attr('score') if cur_game else 0,
+        "score": score,
     }
     if ack['type'] in ['match', 'timeout', 'new']:
         ret["round_length"]= cur_game.round_queue_length(),
@@ -81,17 +90,27 @@ def hand_in(token):
         abort(400)
 
     if data['type'] == 'timeout':
-        handin = { "timeout": True, 'time':conf('total_time')}
+        handin = { 
+                "timeout": True,
+                'time':conf('total_time'),
+                'action':Log.create_action(g.user.id,'TIMEOUT')}
     else:
         handin = {
             "timeout": False,
             "time": data['time'],
-            "choice": data['choice']
+            "choice": data['choice'],
+            'action':Log.create_action(
+                g.user.id,
+                'NORMAL',
+                data['choice'],
+                data['time'])
         }
     cur_game.lock()
+    actions = [handin['action']]
     mate = cur_game.pop_waiting()
     ack = None
     if mate:
+        actions = [handin['action'],mate['action']]
         if handin['timeout'] or mate['timeout']:
             cur_game.update_score("timeout")
             ack = cur_game.new_round()
@@ -118,4 +137,4 @@ def hand_in(token):
             ack = cur_game.declare_and_wait(handin,wait_time)
         except TimeoutError:
             ack = cur_game.timeout()
-    return create_response(cur_game, ack)
+    return create_response(cur_game, ack,actions)
