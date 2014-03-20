@@ -3,6 +3,12 @@
 
 <script src="/static/vendor/requirejs/require.js"> </script>
 <script src="/static/js/main.js"> </script>
+<script>
+window.global_setting = {
+  timeout: {{conf('total_time')}},
+  punishment_time: {{conf('killing_time')}},
+};
+</script>
 <script> require(['game']); </script>
 
 <style>
@@ -105,10 +111,10 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h4 class="modal-title"> Congraduation </h4>
+        <h4 class="modal-title"> Congratulation, You have finish game. </h4>
       </div>
       <div class="modal-body">
-        <h3> You Win!! </h3>
+        <p> Your final score is <b><span id="final-score"> </span> </b> </p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" data-dismiss="modal" aria-hidden="true"> Close this game and go back.</button>

@@ -21,7 +21,7 @@ def before_request():
 
 @game.route('/')
 def index():
-    return render_template('game/index.html')
+    return render_template('game/index.html', conf=conf)
 
 states_map = {
     "new": "SUCCESS",

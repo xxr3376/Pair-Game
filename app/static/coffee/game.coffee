@@ -1,10 +1,6 @@
 empty_url = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzc3NyI+PC9yZWN0Pjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjEwMCIgeT0iMTAwIiBzdHlsZT0iZmlsbDojNTU1O2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1zaXplOjU2cHg7Zm9udC1mYW1pbHk6QXJpYWwsSGVsdmV0aWNhLHNhbnMtc2VyaWY7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+PzwvdGV4dD48L3N2Zz4="
 
-SETTINGS =
-  timeout: 60
-  init_score: 0
-  punishment_time: 20
-  game_length: 25
+SETTINGS = window.global_setting
 
 define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown', 'bootstrap'],
   (Q, $, getURLParameters, Timer, Countdown) ->
@@ -34,6 +30,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
     # global var
     hightlight = [0, 0, 0]
     ingame = false
+    pending = false
 
     # util
     alert = do ->
@@ -103,7 +100,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       @.classList.toggle 'active'
 
     submit = (data) ->
-      console.trace()
+      pending = true
       submit_dom.popover 'hide'
       toggle_input submit_dom, false
       loading.fadeIn 300
@@ -116,9 +113,17 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       )
       promise.then(
         (data) ->
+          pending = false
           switch data.status
-            when 'SUCCESS', 'TIMEOUT'
+            when 'SUCCESS'
               alert 'Great! Next Round', 'success'
+              countdown.stop()
+              init_round data.round
+              score_dom.text (parseInt data.score)
+              length_dom.text data.round_length
+              toggle_input submit_dom, true
+            when 'TIMEOUT'
+              alert 'Opps, You or your partener exceed the time limit.', 'danger'
               countdown.stop()
               init_round data.round
               score_dom.text (parseInt data.score)
@@ -130,9 +135,10 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
               score_dom.text (parseInt data.score)
               toggle_input submit_dom, true
             when 'DONE'
-              alert 'You Win!', 'success'
               countdown.stop()
               ($ '#modal-win').modal('show')
+              score_dom.text (parseInt data.score)
+              ($ '#final-score').text (parseInt data.score)
               ingame = false
             when 'EXIT'
               countdown.stop()
@@ -159,9 +165,10 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         choice: unselected
       submit data
     countdown.on Countdown.Events.DONE, ->
-      data =
-        type: 'timeout'
-      submit data
+      if not pending
+        data =
+          type: 'timeout'
+        submit data
     window.onbeforeunload = (e) ->
       if ingame
         message = 'You are still in game, Are you going to exit?'

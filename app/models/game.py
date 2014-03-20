@@ -17,7 +17,6 @@ class Game(db.Model):
     state = db.Column(db.Integer, index=True)
     score = db.Column(db.Integer)
     createtime = db.Column(db.DateTime, index=True)
-    current_round_id = db.Column(db.Integer)
 
     def save_map(self, token):
         key = token_format % token
@@ -55,13 +54,13 @@ class Game(db.Model):
     
     #one has been left
     def timeout(self):
-        self.set_attr('state',self.FAIL)
+        self.state = self.FAIL
         return {"type": "exit"}
 
     # get a new round from queue
     def new_round(self):
         self.set_attr("submit_count", 0)
-        self.set_attr('state',self.PLAYING)
+        self.state = self.PLAYING
         key = self.round_queue_key
         result = redis.db.lpop(key)
         if result:
