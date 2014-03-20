@@ -1,8 +1,15 @@
 {% extends "base.html" %}
 {% import "_forms_h.html" as m %}
 {% block content %}
-<div class="row">
-	<h1> Enter </h1>
+<div class="well">
   <a href="{{url_for('team.index')}}"> Start game </a>
 </div>
+
+<div class="well">
+  TODO, should show history
+</div>
+{% endblock %}
+
+{% block title %}
+Online Game
 {% endblock %}
