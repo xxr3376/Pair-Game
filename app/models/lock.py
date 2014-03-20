@@ -14,7 +14,6 @@ def _lock_(key, hkey):
             #raise "it cannot happen!"
             raise TimeoutError()
         lock = redis.db.hget(key, hkey)
-        print lock
         if lock == None or int(lock) == 0:
             get_lock = redis.db.hincrby(key, hkey, 1)
             if get_lock == 1:
