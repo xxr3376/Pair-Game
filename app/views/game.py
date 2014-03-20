@@ -1,4 +1,4 @@
-#! encoding=utf-7
+#! encoding=utf-8
 from flask import Blueprint, render_template, request, g, jsonify, abort
 import json
 from .access import access_control
@@ -113,7 +113,9 @@ def hand_in(token):
         cur_game.unlock()
     else:
         try:
-            ack = cur_game.declare_and_wait(handin, conf('round_timeout') - handin['time'])
+            wait_time = conf('timeout_time')
+            wait_time += conf('total_time')-handin['time']
+            ack = cur_game.declare_and_wait(handin,wait_time)
         except TimeoutError:
             ack = cur_game.timeout()
     return create_response(cur_game, ack)
