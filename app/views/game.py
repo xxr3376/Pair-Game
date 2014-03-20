@@ -9,7 +9,7 @@ from app.models.config import get as conf
 from app.models.Rounds import Rounds
 from app.models.game import Game, TimeoutError
 
-from .lock import lock, release_lock
+from app.models.lock import lock, release_lock
 
 game = Blueprint('game', __name__)
 

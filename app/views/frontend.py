@@ -65,10 +65,11 @@ def register():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
+        email = form.email.data
         if User.query.filter_by(username=username.lower()).count():
             flash(u'Username already exists', 'danger')
         else:
-            user = User(username=username, password=password, role=ROLE['NORMAL'])
+            user = User(username=username, password=password, email=email, role=ROLE['NORMAL'])
             db.session.add(user)
             db.session.commit()
             login_user(user)
