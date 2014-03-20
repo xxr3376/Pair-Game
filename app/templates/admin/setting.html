@@ -2,7 +2,7 @@
 {% import "_forms_h.html" as m %}
 {% block content %}
 
-<form class="form" action="" method="post" name="setting">
+<form class="form form-horizontal" action="" method="post" name="setting">
   {{form.hidden_tag()}}
   {{ m.input(form.score_init) }}
   {{ m.input(form.rounds_init) }}
@@ -14,4 +14,5 @@
     {{ m.submit("Save", class="btn-lg btn-primary btn-block") }}
   </div>
 </form>
+
 {% endblock %}

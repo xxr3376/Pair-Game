@@ -13,6 +13,8 @@ games = 'playing_users'
 @frontend.route('/')
 @login_required
 def index():
+    if g.user.role == ROLE['ADMIN']:
+        return redirect(url_for('admin.index'))
     return render_template("frontend/index.html")
 @frontend.route('/login', methods = ['GET', 'POST'])
 def login():
