@@ -118,6 +118,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
             when 'SUCCESS'
               alert 'Great! Next Round', 'success'
               countdown.stop()
+              ($ '.choice').attr 'src', empty_url
               init_round data.round
               score_dom.text (parseInt data.score)
               length_dom.text data.round_length
@@ -125,6 +126,7 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
             when 'TIMEOUT'
               alert 'Opps, You or your partener exceed the time limit.', 'danger'
               countdown.stop()
+              ($ '.choice').attr 'src', empty_url
               init_round data.round
               score_dom.text (parseInt data.score)
               length_dom.text data.round_length
