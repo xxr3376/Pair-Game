@@ -44,6 +44,7 @@ def register_token(token, user_id1, user_id2):
     db.session.add(game)
     db.session.commit()
     game.save_map(token)
+    game.init()
     pass
 
 waiting_key = "team:waiting"

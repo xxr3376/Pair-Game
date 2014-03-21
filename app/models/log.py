@@ -1,6 +1,7 @@
 #! encoding=utf-8
 from app.foundation import db, redis
 from app.models.lock import _lock_, _unlock_
+from app.models.game import Game
 from app.models.config import get as conf
 from datetime import datetime
 import simplejson as json
@@ -15,12 +16,32 @@ class Log(db.Model):
 
     createtime = db.Column(db.DateTime, index=True)
     
+    def to_dict(self):
+        return {
+                "game":self.game_id,
+                "round":self.round_id,
+                "submits":self.submit_count,
+                "data":json.loads(self.data)
+                }
+    
     def __repr__(self):
-        return "game:%d round:%d count:%d data:%s" % (
-                self.game_id, 
-                self.round_id,
-                self.submit_count,
-                self.data)
+        return str(self.to_dict())
+    
+    @staticmethod
+    def user_log(id):
+        gameids = []
+        for game in Game.query.filter(Game.p1 == id):
+            gameids.append(game.id)
+        for game in Game.query.filter(Game.p2 == id):
+            gameids.append(game.id)
+        print gameids
+        logs = []
+        for game in sorted(gameids):
+            commits = []
+            for log in Log.query.filter(Log.game_id.in_([game])):
+                commits.append(log.to_dict())
+            logs.append(commits)
+        return logs
 
     @classmethod
     def create(cls, game_id, round_id, submit_count, score, actions):

@@ -34,7 +34,11 @@ states_map = {
 def create_response(cur_game, ack,actions = None):
     #print '-------------'
     #print ack
-    score = cur_game.get_attr('score') if cur_game else 0
+    score = 0
+    if cur_game:
+        #cur_game.state = cur_game.PLAYING
+        print cur_game.state
+        score = cur_game.get_attr('score')
     if actions and (len(actions)==2 or ack['type'] == 'exit'):
         item = Log.create(
                 cur_game.id,
@@ -42,7 +46,8 @@ def create_response(cur_game, ack,actions = None):
                 cur_game.get_attr('submit_count'),
                 score,
                 actions)
-        print item
+        if ack['type'] in ['exit','done']:
+            cur_game.finish()
     ret = {
         "status": states_map[ack['type']],
         "score": score,
@@ -59,12 +64,15 @@ def create_response(cur_game, ack,actions = None):
 def prepare(token):
     output = None
     cur_game = Game.get_by_token(token)
-    if cur_game and cur_game.participate(g.user):
+    if cur_game and cur_game.participate(g.user) \
+            and cur_game.get_attr('state') == cur_game.NEW:
+            #and cur_game.state == cur_game.NEW:
+        cur_game.state = cur_game.PLAYING
         cur_game.lock()
         waiting = cur_game.pop_waiting()
         if waiting:
             rounds = Rounds.get_rounds(conf('rounds_init'))
-            cur_game.init(conf('score_init'), rounds)
+            cur_game.prepare(conf('score_init'), rounds)
             output = cur_game.new_round()
             if output.get("type") != 'done':
                 output["type"] = 'new'
@@ -82,7 +90,11 @@ def prepare(token):
 @game.route('/submit/<token>',methods = ['POST'])
 def hand_in(token):
     cur_game = Game.get_by_token(token)
-    if not cur_game or not cur_game.participate(g.user):
+    if not cur_game or not cur_game.participate(g.user)\
+            or cur_game.get_attr('state') != cur_game.PLAYING:
+            #or cur_game.state != cur_game.PLAYING:
+        if cur_game:
+                    print cur_game.state
         abort(400)
 
     data = request.get_json()

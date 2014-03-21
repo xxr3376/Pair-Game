@@ -18,6 +18,8 @@ class Game(db.Model):
     score = db.Column(db.Integer)
     createtime = db.Column(db.DateTime, index=True)
 
+    def __repr__(self):
+        return '%d:(%d,%d)[%d]:%d %s' % (self.id,self.p1,self.p2,self.state,self.score,self.createtime)
     def save_map(self, token):
         key = token_format % token
         # let map expire in 480 second
@@ -27,12 +29,27 @@ class Game(db.Model):
             return True
         return False
 
-    def init(self, score, rounds):
+    def finish(self):
+        keys = [
+                self.round_queue_key,
+                self.status_key,
+                self.ack_key,
+                self.wait_key]
+        for key in keys:
+            redis.db.delete(key)
+    
+    def init(self):
         self.set_attr('current_round',-1)
-        self.set_attr("score", score)
+        self.set_attr("score", 0)
         self.set_attr("submit_count", 0)
-        self.create_round_queue(rounds)
         self.state = self.NEW
+        self.set_attr('state',self.NEW)
+
+    def prepare(self, score, rounds):
+        self.set_attr("score", score)
+        self.create_round_queue(rounds)
+        self.state = self.PLAYING
+        self.set_attr('state',self.PLAYING)
         pass
 
     @classmethod
@@ -85,11 +102,14 @@ class Game(db.Model):
 
     def set_attr(self, prop, value):
         key = self.status_key
+        #print '%s:%s:%s' %(key,prop,value)
         redis.db.hset(key, prop, json.dumps(value))
 
     def get_attr(self, prop):
         key = self.status_key
-        return json.loads(redis.db.hget(key, prop))
+        ret = redis.db.hget(key,prop)
+        #print '%s:%s:%s' %(key,prop,ret)
+        return json.loads(ret)
 
     @property
     def wait_key(self):
