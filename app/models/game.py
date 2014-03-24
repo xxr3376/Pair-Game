@@ -143,10 +143,10 @@ class Game(db.Model):
         current = self.get_attr('score')
         if state != 'match':
             return current
-        submit_count = self.get_attr('submit_count')
+        #submit_count = self.get_attr('submit_count')
         delta = conf('score_per_round')
-        for i in range(submit_count):
-            delta = delta * (1 - conf('diff_penalty'))
+       # for i in range(submit_count):
+        #    delta = delta * (1 - conf('diff_penalty'))
         if time > conf('killing_time'):
             delta += (conf('killing_time') - time) * conf('timeout_penalty')
         current += delta

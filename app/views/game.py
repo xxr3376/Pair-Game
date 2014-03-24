@@ -27,6 +27,7 @@ states_map = {
     "new": "SUCCESS",
     "match": "SUCCESS",
     "unmatch": "RETRY",
+    "fail": "FAIL",
     "timeout": "TIMEOUT",
     "exit": "EXIT",
     "done": "DONE",
@@ -52,7 +53,7 @@ def create_response(cur_game, ack,actions = None):
         "status": states_map[ack['type']],
         "score": score,
     }
-    if ack['type'] in ['match', 'timeout', 'new']:
+    if ack['type'] in ['match', 'timeout', 'new','fail']:
         ret["round_length"]= cur_game.round_queue_length(),
         #print ack['next']
         cur_round = Rounds.query.get(ack['next'])
@@ -130,16 +131,18 @@ def hand_in(token):
                 ack['type'] = 'timeout'
         else:
             time = max(handin['time'], mate['time'])
+            state = 'fail'
             if mate['choice'] == handin['choice']:
-                cur_game.update_score('match', time)
-                ack = cur_game.new_round()
-                if ack.get("type") != 'done':
-                    ack['type'] = 'match'
-            else:
-                ack = { "type": "unmatch" }
-                count = cur_game.get_attr('submit_count')
-                count += 1
-                cur_game.set_attr('submit_count', count)
+                state = 'match'
+            cur_game.update_score(state, time)
+            ack = cur_game.new_round()
+            if ack.get("type") != 'done':
+                ack['type'] = state
+            #else:
+             #   ack = { "type": "unmatch" }
+              #  count = cur_game.get_attr('submit_count')
+               # count += 1
+                #cur_game.set_attr('submit_count', count)
         cur_game.notice(ack)
         cur_game.unlock()
     else:
