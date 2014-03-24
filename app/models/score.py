@@ -1,0 +1,19 @@
+#encoding = utf-8
+from app.foundation import db, redis
+
+class Score(db.Model):
+    id = db.Column(db.Integer,primary_key = True)
+    game_id = db.Column(db.Integer,index = True)
+    user_id = db.Column(db.Integer,index = True)
+    score = db.Column(db.Integer)
+    state = db.Column(db.String(16))
+    
+    def __repr__(self):
+        return "%s_%s:%s %s" % (self.game_id,self.user_id,self.score,self.state)
+
+    @staticmethod
+    def log_score(game_id,user_id,score,state):
+        log = Score(game_id = game_id,user_id = user_id,score = score,state = state)
+        db.session.add(log)
+        db.session.commit()
+

@@ -7,6 +7,7 @@ from app.foundation import redis
 from flask.ext.login import login_required
 from app.models.config import get as conf
 from app.models.Rounds import Rounds
+from app.models.score import Score
 from app.models.game import Game, TimeoutError
 from app.models.log import Log
 from app.models.lock import lock, release_lock
@@ -54,6 +55,9 @@ def create_response(cur_game, ack,actions = None):
         "status": states_map[ack['type']],
         "score": score,
     }
+    if ack['type'] in ['done','exit']:
+        Score.log_score(cur_game.id,g.user.id,score,ack['type'])
+
     if ack['type'] in ['match', 'timeout', 'new','fail']:
         ret["round_length"]= cur_game.round_queue_length(),
         #print ack['next']
@@ -155,5 +159,6 @@ def hand_in(token):
             ack = cur_game.declare_and_wait(handin,wait_time)
         except TimeoutError:
             ack = cur_game.timeout()
+            ack['state'] = 'exit'
     ack['time'] = handin['time']
     return create_response(cur_game, ack,actions)
