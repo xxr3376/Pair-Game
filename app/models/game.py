@@ -40,13 +40,17 @@ class Game(db.Model):
     
     def init(self):
         self.set_attr('current_round',-1)
-        self.set_attr("score", 0)
+        #self.set_attr("score", 0)
+        self.set_attr(self.score_key(self.p1),0)
+        self.set_attr(self.score_key(self.p2),0)
         self.set_attr("submit_count", 0)
         self.state = self.NEW
         self.set_attr('state',self.NEW)
 
     def prepare(self, score, rounds):
-        self.set_attr("score", score)
+        #self.set_attr("score", score)
+        self.set_attr(self.score_key(self.p1),0)
+        self.set_attr(self.score_key(self.p2),0)
         self.create_round_queue(rounds)
         self.state = self.PLAYING
         self.set_attr('state',self.PLAYING)
@@ -118,6 +122,9 @@ class Game(db.Model):
     def ack_key(self):
         return 'ack:%s' % self.id
 
+    def score_key(self,userid):
+        return 'score:%s:%s' % (self.id,userid)
+
     def pop_waiting(self):
         data = redis.db.lpop(self.wait_key)
         if data:
@@ -139,10 +146,14 @@ class Game(db.Model):
         redis.db.rpush(self.ack_key, data)
 
     # state = 'unmatch', 'match', 'timeout'
-    def update_score(self, state, time=-1):
-        current = self.get_attr('score')
-        if state != 'match':
+    def update_score(self, handin):
+        userid = handin['userid']
+        state = handin['type']
+        key = self.score_key(userid)
+        current = self.get_attr(key)
+        if not state in ['match','done']:
             return current
+        time = handin['time']
         #submit_count = self.get_attr('submit_count')
         delta = conf('score_per_round')
        # for i in range(submit_count):
@@ -150,5 +161,5 @@ class Game(db.Model):
         if time > conf('killing_time'):
             delta += (conf('killing_time') - time) * conf('timeout_penalty')
         current += delta
-        self.set_attr('score', current)
+        self.set_attr(key, current)
         return current

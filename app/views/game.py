@@ -39,7 +39,8 @@ def create_response(cur_game, ack,actions = None):
     if cur_game:
         #cur_game.state = cur_game.PLAYING
         print cur_game.state
-        score = cur_game.get_attr('score')
+        ack['userid'] = g.user.id
+        score = cur_game.update_score(ack)
     if actions and (len(actions)==2 or ack['type'] == 'exit'):
         item = Log.create(
                 cur_game.id,
@@ -85,7 +86,7 @@ def prepare(token):
             except TimeoutError:
                 output = cur_game.timeout()
     else:
-        output = {"type": "exit"}
+        output = {"type": "exit",}
     return create_response(cur_game, output)
 
 @game.route('/submit/<token>',methods = ['POST'])
@@ -125,7 +126,7 @@ def hand_in(token):
     if mate:
         actions = [handin['action'],mate['action']]
         if handin['timeout'] or mate['timeout']:
-            cur_game.update_score("timeout")
+            #cur_game.update_score("timeout")
             ack = cur_game.new_round()
             if ack.get("type") != 'done':
                 ack['type'] = 'timeout'
@@ -134,7 +135,7 @@ def hand_in(token):
             state = 'fail'
             if mate['choice'] == handin['choice']:
                 state = 'match'
-            cur_game.update_score(state, time)
+            #cur_game.update_score(state, time)
             ack = cur_game.new_round()
             if ack.get("type") != 'done':
                 ack['type'] = state
@@ -152,4 +153,5 @@ def hand_in(token):
             ack = cur_game.declare_and_wait(handin,wait_time)
         except TimeoutError:
             ack = cur_game.timeout()
+    ack['time'] = handin['time']
     return create_response(cur_game, ack,actions)
