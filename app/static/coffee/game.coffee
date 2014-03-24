@@ -131,6 +131,14 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
               score_dom.text (parseInt data.score)
               length_dom.text data.round_length
               toggle_input submit_dom, true
+            when 'FAIL'
+              alert "Your choice didn't match your partener's.", 'danger'
+              countdown.stop()
+              ($ '.choice').attr 'src', empty_url
+              init_round data.round
+              score_dom.text (parseInt data.score)
+              length_dom.text data.round_length
+              toggle_input submit_dom, true
             when 'RETRY'
               alert 'Your choice do not pair with your partener, please retry', 'danger'
               clear_action()
