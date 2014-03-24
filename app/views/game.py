@@ -6,6 +6,7 @@ from app.foundation import redis
 
 from flask.ext.login import login_required
 from app.models.config import get as conf
+from app.models.config import load as conf_load
 from app.models.Rounds import Rounds
 from app.models.score import Score
 from app.models.game import Game, TimeoutError
@@ -69,6 +70,7 @@ def create_response(cur_game, ack,actions = None):
 @game.route('/prepare/<token>')
 def prepare(token):
     output = None
+    conf_load(True)
     cur_game = Game.get_by_token(token)
     if cur_game and cur_game.participate(g.user) \
             and cur_game.get_attr('state') == cur_game.NEW:

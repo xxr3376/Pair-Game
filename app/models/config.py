@@ -17,10 +17,11 @@ _CONFIG_KEY_= "CONFIG:PARA"
 init = False
 
 _current = {}
-def load():
+def load(prep = False):
     global init
     global _current
-    if not init:
+    if prep or not init:
+        print 'prepare?'
         init = True
         db_config = redis.db.get(_CONFIG_KEY_)
         if not db_config:
