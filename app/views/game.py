@@ -87,6 +87,7 @@ def prepare(token):
                 output = cur_game.timeout()
     else:
         output = {"type": "exit",}
+    output['state'] = 'new'
     return create_response(cur_game, output)
 
 @game.route('/submit/<token>',methods = ['POST'])
@@ -137,6 +138,7 @@ def hand_in(token):
                 state = 'match'
             #cur_game.update_score(state, time)
             ack = cur_game.new_round()
+            ack['state'] = state
             if ack.get("type") != 'done':
                 ack['type'] = state
             #else:

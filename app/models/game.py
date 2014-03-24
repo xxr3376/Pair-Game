@@ -148,10 +148,10 @@ class Game(db.Model):
     # state = 'unmatch', 'match', 'timeout'
     def update_score(self, handin):
         userid = handin['userid']
-        state = handin['type']
+        state = handin['state']
         key = self.score_key(userid)
         current = self.get_attr(key)
-        if not state in ['match','done']:
+        if not state in ['match']:
             return current
         time = handin['time']
         #submit_count = self.get_attr('submit_count')
