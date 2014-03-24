@@ -51,6 +51,9 @@ class User(db.Model):
         verify = hashlib.sha1(passwd).hexdigest()
         return verify == hsh
     @staticmethod
+    def total_users():
+        return User.query.filter_by(role=ROLE['NORMAL']).count()
+    @staticmethod
     def online_users():
         min_ago = datetime.datetime.utcnow()-datetime.timedelta(minutes=1)
         query = User.query\
