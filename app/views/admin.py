@@ -17,7 +17,8 @@ def before_request():
 @admin.route('/')
 def index():
     online = User.online_users()
-    return render_template('admin/index.html', online_num=online)
+    total =  User.query.count()
+    return render_template('admin/index.html', online_num=online,total_num = total)
 
 avaliable = [
     'score_init',
