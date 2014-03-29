@@ -88,7 +88,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         loading.fadeOut 300
     )
     ($ '.choice').on 'click', ->
-      console.trace()
       submit_dom.popover 'hide'
 
       count = 0
@@ -96,7 +95,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       if count == 2 and hightlight[@.dataset.num] is 0
         return
       hightlight[@.dataset.num] ^= 1
-      console.log hightlight
       @.classList.toggle 'active'
 
     submit = (data) ->

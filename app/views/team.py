@@ -38,8 +38,7 @@ def generate_enqueue_result(token):
 def register_token(token, user_id1, user_id2):
     game = Game(p1=user_id1, p2=user_id2,\
             state=Game.NEW,\
-            createtime=datetime.utcnow(),\
-            score=0\
+            createtime=datetime.utcnow(),
         )
     db.session.add(game)
     db.session.commit()

@@ -15,8 +15,8 @@ class Game(db.Model):
     p1 = db.Column(db.Integer, db.ForeignKey('user.id'))
     p2 = db.Column(db.Integer, db.ForeignKey('user.id'))
     state = db.Column(db.Integer, index=True)
-    score = db.Column(db.Integer)
     createtime = db.Column(db.DateTime, index=True)
+    scores = db.relationship('Score', lazy='dynamic')
 
     def __repr__(self):
         return '%d:(%d,%d)[%d]:%d %s' % (self.id,self.p1,self.p2,self.state,self.score,self.createtime)
@@ -72,7 +72,6 @@ class Game(db.Model):
         key = self.round_queue_key
         redis.db.delete(key)
         redis.db.lpush(key, *rounds)
-    
     #one has been left
     def timeout(self):
         self.state = self.FAIL

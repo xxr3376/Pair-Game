@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g
 from app.forms import LoginForm, PasswdForm, RegisterForm
 from app.models.User import User, ROLE
+from app.models.score import Score
 from flask.ext.login import login_user, logout_user, login_required
 from app.foundation import db
 
@@ -15,7 +16,17 @@ games = 'playing_users'
 def index():
     if g.user.role == ROLE['ADMIN']:
         return redirect(url_for('admin.index'))
-    return render_template("frontend/index.html")
+    history = Score.query\
+        .filter_by(user_id=g.user.id)\
+        .order_by(Score.id.desc())\
+        .limit(20)
+    data = {
+        "online_num": User.online_users(),
+        "total_num": User.total_users(),
+        "average": Score.average(g.user.id),
+        "history" : history,
+    }
+    return render_template("frontend/index.html", **data)
 @frontend.route('/login', methods = ['GET', 'POST'])
 def login():
     if g.user is not None and g.user.is_authenticated():
