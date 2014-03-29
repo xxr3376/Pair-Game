@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
+<script type="text/javascript" src="http://www.google.com/recaptcha/api/js/recaptcha_ajax.js"></script>
 <script src="/static/vendor/requirejs/require.js"> </script>
 <script src="/static/js/main.js"> </script>
 <script> require(['team']); </script>
@@ -33,13 +34,28 @@
   </div>
 </div>
 
-<div class="page-header">
-  <h1> Let's get a partner </h1>
+
+<div class="panel panel-info">
+  <div class="panel-heading">
+    <h3 class="panel-title">Let's get a partner</h3>
+  </div>
+  <div class="panel-body">
+    <p>
+    Input recaptcha and click button to find a partner.
+    </p>
+    <div id="recaptcha"></div>
+  </div>
+
+  <ul class="list-group">
+    <li class="list-group-item">
+    <button id="enqueue" type="button" class="btn btn-primary"> go into queue </button>
+    <div id="text"> </div>
+    </li>
+  </ul>
+
 </div>
 
-<button id="enqueue" type="button" class="btn btn-primary"> go into queue </button>
 
-<div id="text"> </div>
 
 {% endblock %}
 

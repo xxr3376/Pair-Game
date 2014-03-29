@@ -1,11 +1,12 @@
 #! encoding=utf-8
-from flask import Blueprint, render_template, g, jsonify
+from flask import Blueprint, render_template, g, jsonify, request, abort
 from .access import access_control
 from flask.ext.login import login_required
 
 from app.foundation import db, redis
 from app.models.lock import lock, release_lock
 from app.models.game import Game
+import app.models.recaptcha as recaptcha
 
 from datetime import datetime
 import uuid
@@ -52,6 +53,18 @@ lock_key = 'team_lock'
 
 @team.route('/enqueue')
 def enqueue():
+    challenge = request.args.get('challenge', None)
+    response = request.args.get('response', None)
+    if not (challenge and response):
+        result = {
+            "status": "RECAPTCA",
+        }
+        return jsonify(result)
+    if not recaptcha.validate(challenge, response):
+        result = {
+            "status": "RECAPTCA",
+        }
+        return jsonify(result)
     lock(lock_key)
     mate = redis.db.spop(waiting_key)
     result = {}
