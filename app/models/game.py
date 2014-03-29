@@ -123,7 +123,7 @@ class Game(db.Model):
         return 'ack:%s' % self.id
 
     def score_key(self,userid):
-        return 'score:%s:%s' % (self.id,userid)
+        return 'score:%s' % userid
 
     def pop_waiting(self):
         data = redis.db.lpop(self.wait_key)
