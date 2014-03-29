@@ -16,6 +16,7 @@ class User(db.Model):
     email = db.Column(db.String(128))
     role = db.Column(db.Integer)
     last_seen = db.Column(db.DateTime)
+    avatar = db.Column(db.Text)
 
     def __init__(self, **kwargs):
         self.accept_num = 0

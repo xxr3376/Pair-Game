@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_forms_h.html" as m %}
+{% block content %}
+
+{{g.user.avatar}}
+
+<form method="POST" enctype="multipart/form-data" class="form-horizontal">
+  {{form.hidden_tag()}}
+  <div class="form-group ">
+    <label class="col-lg-2 control-label" for="avatar"><span>avatar :</span></label>
+    <div class="col-lg-4">
+      {{form.avatar}}
+
+      {% if form.avatar.errors %}
+      <ul class="errors">
+        {% for error in form.avatar.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div class="col-lg-offset-3 col-lg-2">
+    {{ m.submit("Upload", class="btn-lg btn-primary btn-block") }}
+  </div>
+</form>
+{% endblock %}
+
+{% block title %}
+Change Avatar
+{% endblock %}

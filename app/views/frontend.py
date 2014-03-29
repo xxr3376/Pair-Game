@@ -1,10 +1,12 @@
 #! encoding=utf-8
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g
 from app.forms import LoginForm, PasswdForm, RegisterForm
+from app.forms.avatar import AvatarForm
 from app.models.User import User, ROLE
 from app.models.score import Score
 from flask.ext.login import login_user, logout_user, login_required
 from app.foundation import db
+from werkzeug.utils import secure_filename
 
 frontend = Blueprint('frontend', __name__, template_folder='templates')
 
@@ -89,3 +91,15 @@ def register():
             flash(u'Welcome ' + form.username.data, 'info');
             return redirect(url_for(".index"))
     return render_template("frontend/register.html", form = form)
+@frontend.route("/avatar", methods=['GET', 'POST'])
+@login_required
+def avatar():
+    form = AvatarForm()
+    if form.validate_on_submit():
+        filename = secure_filename(form.avatar.data.filename)
+        form.avatar.data.save('/home/xxr/img_data/'+ filename)
+        stream = form.avatar.data.stream
+        #TODO save a thunmnail
+        flash(u'Avatar Change Succeed!', 'success')
+        return redirect(url_for('.index'))
+    return render_template("frontend/avatar.html", form=form)
