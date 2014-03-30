@@ -18,6 +18,10 @@ class User(db.Model):
     last_seen = db.Column(db.DateTime)
     avatar = db.Column(db.Text)
 
+    def setAvatar(self,url):
+        self.avatar = url
+        db.session.commit()
+
     def __init__(self, **kwargs):
         self.accept_num = 0
         self.reject_num = 0

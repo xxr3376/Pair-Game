@@ -91,14 +91,26 @@ def register():
             flash(u'Welcome ' + form.username.data, 'info');
             return redirect(url_for(".index"))
     return render_template("frontend/register.html", form = form)
+
+import os
+from PIL import Image
+
 @frontend.route("/avatar", methods=['GET', 'POST'])
 @login_required
 def avatar():
     form = AvatarForm()
     if form.validate_on_submit():
-        filename = secure_filename(form.avatar.data.filename)
-        form.avatar.data.save('/home/xxr/img_data/'+ filename)
+        filename = str(g.user.id)+secure_filename(form.avatar.data.filename)[-4:]
+        path = os.path.abspath(os.curdir)+'/app'
+        local_path= '/static/img_data/'
+        form.avatar.data.save(path + local_path + filename)
         stream = form.avatar.data.stream
+        im = Image.open(path+local_path + filename)
+        size = 128,128
+        im.thumbnail(size,Image.ANTIALIAS)
+        thumbnail = local_path + filename[:-4] + "_thumbnail" + filename[-4:]
+        im.save(path+thumbnail)
+        g.user.setAvatar(thumbnail)
         #TODO save a thunmnail
         flash(u'Avatar Change Succeed!', 'success')
         return redirect(url_for('.index'))
