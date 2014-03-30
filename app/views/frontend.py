@@ -1,12 +1,12 @@
 #! encoding=utf-8
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g
+from flask import Blueprint, render_template, redirect, url_for, flash, request, g, current_app
 from app.forms import LoginForm, PasswdForm, RegisterForm
 from app.forms.avatar import AvatarForm
 from app.models.User import User, ROLE
 from app.models.score import Score
 from flask.ext.login import login_user, logout_user, login_required
 from app.foundation import db
-from werkzeug.utils import secure_filename
+import time
 
 frontend = Blueprint('frontend', __name__, template_folder='templates')
 
@@ -93,25 +93,41 @@ def register():
     return render_template("frontend/register.html", form = form)
 
 import os
-from PIL import Image
+from PIL import Image, ImageOps
+import random
+import StringIO
+import shutil
 
 @frontend.route("/avatar", methods=['GET', 'POST'])
 @login_required
 def avatar():
     form = AvatarForm()
     if form.validate_on_submit():
-        filename = str(g.user.id)+secure_filename(form.avatar.data.filename)[-4:]
-        path = os.path.abspath(os.curdir)+'/app'
-        local_path= '/static/img_data/'
-        form.avatar.data.save(path + local_path + filename)
+        ext = form.avatar.data.filename.split('.')[-1]
+        filename = "%s_%s.%s" % (g.user.id, int(time.time()), ext)
+        base = os.path.join(current_app.config['ASSET_DIR'], 'upload')
+        if not os.path.isdir(base):
+            os.makedirs(base)
+
         stream = form.avatar.data.stream
-        im = Image.open(path+local_path + filename)
-        size = 128,128
-        im.thumbnail(size,Image.ANTIALIAS)
-        thumbnail = local_path + filename[:-4] + "_thumbnail" + filename[-4:]
-        im.save(path+thumbnail)
-        g.user.setAvatar(thumbnail)
-        #TODO save a thunmnail
+        img = StringIO.StringIO()
+        shutil.copyfileobj(stream, img)
+        img.seek(0)
+
+        with open(os.path.join(base, filename), "wb") as f:
+            f.write(img.read())
+        img.seek(0)
+
+        im = Image.open(img)
+        size = 64,64
+        avatar = ImageOps.fit(im, size, Image.ANTIALIAS)
+        filename = str(g.user.id) + '.jpg'
+        base = os.path.join(current_app.config['ASSET_DIR'], 'avatar')
+        if not os.path.isdir(base):
+            os.makedirs(base)
+        avatar.save(os.path.join(base, filename))
+        g.user.avatar = "/asset/avatar/%s?v=%s" % (filename, random.randint(1, 100))
+        db.session.commit()
         flash(u'Avatar Change Succeed!', 'success')
         return redirect(url_for('.index'))
     return render_template("frontend/avatar.html", form=form)

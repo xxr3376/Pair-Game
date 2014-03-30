@@ -38,7 +38,7 @@
             <a class="dropdown-toggle" data-toggle="dropdown" href="#">
               {{g.user.username}}
               <span id="avatar-outer">
-                <img id="avatar-img" src="{{g.user.avatar}}" />
+                <img id="avatar-img" src="{{g.user.avatar|default("/static/img/avatar.jpg", true)}}" />
               </span>
               <b class="caret"></b> </a>
             <ul class="dropdown-menu">
