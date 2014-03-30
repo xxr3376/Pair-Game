@@ -17,12 +17,14 @@ def before_request():
 @admin.route('/')
 def index():
     online = User.online_users()
-    return render_template('admin/index.html', online_num=online)
+    total =  User.total_users()
+    return render_template('admin/index.html', online_num=online,total_num = total)
 
 avaliable = [
     'score_init',
     'rounds_init',
     'score_per_round',
+    'killing_time',
     'total_time',
     'timeout_penalty',
 ]

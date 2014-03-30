@@ -15,7 +15,7 @@ class Log(db.Model):
     data = db.Column(db.Text)
 
     createtime = db.Column(db.DateTime, index=True)
-    
+
     def to_dict(self):
         return {
                 "game":self.game_id,
@@ -23,10 +23,10 @@ class Log(db.Model):
                 "submits":self.submit_count,
                 "data":json.loads(self.data)
                 }
-    
+
     def __repr__(self):
         return str(self.to_dict())
-    
+
     @staticmethod
     def user_log(id):
         gameids = []

@@ -88,7 +88,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
         loading.fadeOut 300
     )
     ($ '.choice').on 'click', ->
-      console.trace()
       submit_dom.popover 'hide'
 
       count = 0
@@ -96,7 +95,6 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
       if count == 2 and hightlight[@.dataset.num] is 0
         return
       hightlight[@.dataset.num] ^= 1
-      console.log hightlight
       @.classList.toggle 'active'
 
     submit = (data) ->
@@ -125,6 +123,14 @@ define(['q', 'jquery', 'util/get-url-parameters', 'util/timer', 'util/countdown'
               toggle_input submit_dom, true
             when 'TIMEOUT'
               alert 'Opps, You or your partener exceed the time limit.', 'danger'
+              countdown.stop()
+              ($ '.choice').attr 'src', empty_url
+              init_round data.round
+              score_dom.text (parseInt data.score)
+              length_dom.text data.round_length
+              toggle_input submit_dom, true
+            when 'FAIL'
+              alert "Your choice didn't match your partener's.", 'danger'
               countdown.stop()
               ($ '.choice').attr 'src', empty_url
               init_round data.round

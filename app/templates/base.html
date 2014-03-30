@@ -1,5 +1,20 @@
 {% extends "bootstrap_base.html" %}
 {% block body_content %}
+<style>
+#avatar-img{
+  position: absolute;
+  top: -16px;
+  left: 4px;
+  height: 32px;
+  width: 32px;
+}
+#avatar-outer {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 5px;
+}
+</style>
 <nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
 <div class="container">
     <div class="navbar-header">
@@ -20,8 +35,14 @@
         <ul class="nav navbar-nav navbar-right">
             {% if g.user and g.user.is_authenticated() %}
             <li class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown" href="#"> {{g.user.username}} <b class="caret"></b> </a>
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+              {{g.user.username}}
+              <span id="avatar-outer">
+                <img id="avatar-img" src="{{g.user.avatar|default("/static/img/avatar.jpg", true)}}" />
+              </span>
+              <b class="caret"></b> </a>
             <ul class="dropdown-menu">
+                <li><a href="{{url_for('frontend.avatar')}}"> Change Avatar  </a></li>
                 <li><a href="{{url_for('frontend.passwd')}}"> Change Password </a></li>
                 <li><a href="{{url_for('frontend.logout')}}"> Logout </a></li>
             </ul>

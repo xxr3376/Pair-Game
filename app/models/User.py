@@ -16,6 +16,7 @@ class User(db.Model):
     email = db.Column(db.String(128))
     role = db.Column(db.Integer)
     last_seen = db.Column(db.DateTime)
+    avatar = db.Column(db.Text)
 
     def __init__(self, **kwargs):
         self.accept_num = 0
@@ -50,12 +51,18 @@ class User(db.Model):
         passwd = '%s%s%s' % (salt, raw, db.app.config['PASSWORD_SECRET'])
         verify = hashlib.sha1(passwd).hexdigest()
         return verify == hsh
-    @staticmethod
-    def online_users():
+    @classmethod
+    def total_users(cls):
+        return cls.query.filter_by(role=ROLE['NORMAL'])\
+                .with_entities(cls.id)\
+                .count()
+    @classmethod
+    def online_users(cls):
         min_ago = datetime.datetime.utcnow()-datetime.timedelta(minutes=1)
         query = User.query\
                 .filter_by(role=ROLE['NORMAL'])\
-                .filter(User.last_seen>min_ago)
+                .filter(User.last_seen>min_ago)\
+                .with_entities(cls.id)
         return query.count()
     @staticmethod
     def create_password(raw):
@@ -71,6 +78,3 @@ class User(db.Model):
                     'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
         salt = ''.join([random.choice(chars) for i in range(length)])
         return salt
-    @staticmethod
-    def roleMember(roleName):
-        return User.query.filter_by(role=ROLE[roleName]).all()

@@ -15,8 +15,8 @@ class Game(db.Model):
     p1 = db.Column(db.Integer, db.ForeignKey('user.id'))
     p2 = db.Column(db.Integer, db.ForeignKey('user.id'))
     state = db.Column(db.Integer, index=True)
-    score = db.Column(db.Integer)
     createtime = db.Column(db.DateTime, index=True)
+    scores = db.relationship('Score', lazy='dynamic')
 
     def __repr__(self):
         return '%d:(%d,%d)[%d]:%d %s' % (self.id,self.p1,self.p2,self.state,self.score,self.createtime)
@@ -40,13 +40,17 @@ class Game(db.Model):
     
     def init(self):
         self.set_attr('current_round',-1)
-        self.set_attr("score", 0)
+        #self.set_attr("score", 0)
+        self.set_attr(self.score_key(self.p1),0)
+        self.set_attr(self.score_key(self.p2),0)
         self.set_attr("submit_count", 0)
         self.state = self.NEW
         self.set_attr('state',self.NEW)
 
     def prepare(self, score, rounds):
-        self.set_attr("score", score)
+        #self.set_attr("score", score)
+        self.set_attr(self.score_key(self.p1),0)
+        self.set_attr(self.score_key(self.p2),0)
         self.create_round_queue(rounds)
         self.state = self.PLAYING
         self.set_attr('state',self.PLAYING)
@@ -68,7 +72,6 @@ class Game(db.Model):
         key = self.round_queue_key
         redis.db.delete(key)
         redis.db.lpush(key, *rounds)
-    
     #one has been left
     def timeout(self):
         self.state = self.FAIL
@@ -118,6 +121,9 @@ class Game(db.Model):
     def ack_key(self):
         return 'ack:%s' % self.id
 
+    def score_key(self,userid):
+        return 'score:%s' % userid
+
     def pop_waiting(self):
         data = redis.db.lpop(self.wait_key)
         if data:
@@ -139,16 +145,20 @@ class Game(db.Model):
         redis.db.rpush(self.ack_key, data)
 
     # state = 'unmatch', 'match', 'timeout'
-    def update_score(self, state, time=-1):
-        current = self.get_attr('score')
-        if state != 'match':
+    def update_score(self, handin):
+        userid = handin['userid']
+        state = handin['state']
+        key = self.score_key(userid)
+        current = self.get_attr(key)
+        if not state in ['match']:
             return current
-        submit_count = self.get_attr('submit_count')
+        time = handin['time']
+        #submit_count = self.get_attr('submit_count')
         delta = conf('score_per_round')
-        for i in range(submit_count):
-            delta = delta * (1 - conf('diff_penalty'))
+       # for i in range(submit_count):
+        #    delta = delta * (1 - conf('diff_penalty'))
         if time > conf('killing_time'):
             delta += (conf('killing_time') - time) * conf('timeout_penalty')
         current += delta
-        self.set_attr('score', current)
+        self.set_attr(key, current)
         return current

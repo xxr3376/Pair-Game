@@ -20,3 +20,7 @@ PASSWORD_SECRET = 'dafsafdfsagse'
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
+
+RECAPTCHA_PRIVATE_KEY = "6Lf05PASAAAAACxYkqaiMJWIxeVOhrTudPx5ElI_"
+
+ASSET_DIR = os.path.join(basedir, 'asset')

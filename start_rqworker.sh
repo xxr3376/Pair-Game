@@ -1,1 +1,0 @@
-rqworker --config config
