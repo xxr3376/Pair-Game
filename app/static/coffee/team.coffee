@@ -33,8 +33,10 @@ define(['q', 'jquery'],
               Recaptcha.reload()
             else
               text.text "Enqueue failed, #{json.reason}, pls retry"
+              Recaptcha.reload()
         (err) ->
           text.text "Network Error, pls refresh page"
+          Recaptcha.reload()
       ).fin ->
         btn.prop 'disabled', false
         loading.fadeOut 500
