@@ -24,6 +24,7 @@ avaliable = [
     'score_init',
     'rounds_init',
     'score_per_round',
+    'killing_time',
     'total_time',
     'timeout_penalty',
 ]
